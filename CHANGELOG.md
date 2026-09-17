@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.2] - 2026-09-17
+
+### Added
+- **Integrated Dashboard Settings Toolbar**: Added instant controls directly inside Webview Dashboard for Status Bar Style (Compact / Detailed / Minimal), Tooltip Detail Level (All / Summary Only / Accounts Only), and Auto-Refresh Interval (15s, 30s, 60s, 2m, 5m).
+- **Two-Way Settings Sync**: Real-time message bus syncs settings chosen in Dashboard with VS Code configuration and Status Bar.
+
 ## [1.0.1] - 2026-09-17
 
 ### Added

@@ -2,7 +2,7 @@
   "name": "9router-monitor-pro",
   "displayName": "9Router Monitor Pro",
   "description": "Track quotas, tokens, and multi-account status of 9Router AI providers directly in the VS Code status bar.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "minhtalent-dev",
   "author": "Minhtalent-dev",
   "license": "MIT",

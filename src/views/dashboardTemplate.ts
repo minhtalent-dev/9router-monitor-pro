@@ -428,6 +428,45 @@ export function getWebviewContent(
     cursor: pointer;
   }
 
+  .toolbar-row-settings {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--card-border);
+  }
+  .setting-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .setting-item label {
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+  }
+  .setting-item select {
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+  }
+  .setting-item select:focus {
+    border-color: var(--blue);
+  }
+
   /* Provider Section */
   .provider-section {
     background: var(--card-bg);
@@ -803,6 +842,34 @@ export function getWebviewContent(
         <input type="checkbox" id="showHiddenCheck"> 👁️ Show hidden models
       </label>
     </div>
+    <div class="toolbar-row-settings">
+      <div class="setting-item">
+        <label for="statusStyleSelect">📊 Status Bar:</label>
+        <select id="statusStyleSelect">
+          <option value="compact"${(cfg.statusDisplayMode ?? 'compact') === 'compact' ? ' selected' : ''}>Compact (Balanced)</option>
+          <option value="detailed"${cfg.statusDisplayMode === 'detailed' ? ' selected' : ''}>Detailed (Full ratio + reset)</option>
+          <option value="minimal"${cfg.statusDisplayMode === 'minimal' ? ' selected' : ''}>Minimal (Numbers only)</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label for="tooltipStyleSelect">📋 Tooltip Detail:</label>
+        <select id="tooltipStyleSelect">
+          <option value="all"${(cfg.tooltipDisplayMode ?? 'all') === 'all' ? ' selected' : ''}>All (Summary + Accounts)</option>
+          <option value="summary"${cfg.tooltipDisplayMode === 'summary' ? ' selected' : ''}>Aggregate Summary Only (Compact)</option>
+          <option value="accounts"${cfg.tooltipDisplayMode === 'accounts' ? ' selected' : ''}>Account List Only</option>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label for="refreshIntervalSelect">⏱️ Auto-Refresh:</label>
+        <select id="refreshIntervalSelect">
+          <option value="15"${cfg.intervalSeconds === 15 ? ' selected' : ''}>15 seconds</option>
+          <option value="30"${cfg.intervalSeconds === 30 ? ' selected' : ''}>30 seconds</option>
+          <option value="60"${cfg.intervalSeconds === 60 ? ' selected' : ''}>60 seconds (Default)</option>
+          <option value="120"${cfg.intervalSeconds === 120 ? ' selected' : ''}>2 minutes</option>
+          <option value="300"${cfg.intervalSeconds === 300 ? ' selected' : ''}>5 minutes</option>
+        </select>
+      </div>
+    </div>
   </div>
 
   <div id="sectionsContainer">
@@ -830,6 +897,30 @@ export function getWebviewContent(
     document.getElementById('setConnectionBtn').addEventListener('click', () => {
       vscode.postMessage({ command: 'setConnection' });
     });
+
+    const statusStyleSelect = document.getElementById('statusStyleSelect');
+    if (statusStyleSelect) {
+      statusStyleSelect.addEventListener('change', (e) => {
+        vscode.postMessage({ command: 'updateStatusStyle', statusMode: e.target.value });
+      });
+    }
+
+    const tooltipStyleSelect = document.getElementById('tooltipStyleSelect');
+    if (tooltipStyleSelect) {
+      tooltipStyleSelect.addEventListener('change', (e) => {
+        vscode.postMessage({ command: 'updateTooltipStyle', tooltipMode: e.target.value });
+      });
+    }
+
+    const refreshIntervalSelect = document.getElementById('refreshIntervalSelect');
+    if (refreshIntervalSelect) {
+      refreshIntervalSelect.addEventListener('change', (e) => {
+        vscode.postMessage({
+          command: 'updateRefreshInterval',
+          intervalSeconds: parseInt(e.target.value, 10)
+        });
+      });
+    }
 
     document.addEventListener('click', (e) => {
       const pinAccBtn = e.target.closest('.pinned-account-btn, .pin-account-btn');

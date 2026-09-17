@@ -110,6 +110,9 @@ export async function showDetails(
       accountId?: string;
       connectionId?: string;
       newActive?: boolean;
+      statusMode?: 'compact' | 'detailed' | 'minimal';
+      tooltipMode?: 'all' | 'summary' | 'accounts';
+      intervalSeconds?: number;
     }) => {
       if (msg.command === 'refresh') {
         await onRefresh(true);
@@ -215,6 +218,44 @@ export async function showDetails(
         await setPreferredSort(context, msg.sort);
       } else if (msg.command === 'updateFilter' && msg.filter) {
         await setPreferredFilter(context, msg.filter);
+      } else if (msg.command === 'updateStatusStyle' && msg.statusMode) {
+        const config = vscode.workspace.getConfiguration('aiTokenUsage');
+        await config.update(
+          'statusDisplayMode',
+          msg.statusMode,
+          vscode.ConfigurationTarget.Global
+        );
+        cfg.statusDisplayMode = msg.statusMode;
+        renderStatusBar(cfg);
+        vscode.window.showInformationMessage(
+          `[9Router Pro] Status Bar display style set to: ${msg.statusMode}`
+        );
+      } else if (msg.command === 'updateTooltipStyle' && msg.tooltipMode) {
+        const config = vscode.workspace.getConfiguration('aiTokenUsage');
+        await config.update(
+          'tooltipDisplayMode',
+          msg.tooltipMode,
+          vscode.ConfigurationTarget.Global
+        );
+        cfg.tooltipDisplayMode = msg.tooltipMode;
+        renderStatusBar(cfg);
+        vscode.window.showInformationMessage(
+          `[9Router Pro] Tooltip detail level set to: ${msg.tooltipMode}`
+        );
+      } else if (
+        msg.command === 'updateRefreshInterval' &&
+        msg.intervalSeconds
+      ) {
+        const config = vscode.workspace.getConfiguration('aiTokenUsage');
+        await config.update(
+          'refreshIntervalSeconds',
+          msg.intervalSeconds,
+          vscode.ConfigurationTarget.Global
+        );
+        cfg.intervalSeconds = msg.intervalSeconds;
+        vscode.window.showInformationMessage(
+          `[9Router Pro] Auto-refresh interval set to ${msg.intervalSeconds}s.`
+        );
       }
     },
     undefined,
