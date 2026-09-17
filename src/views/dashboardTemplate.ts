@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { DashboardData, ExtensionConfig } from '../types';
 import {
   getHiddenModels,
@@ -30,6 +31,20 @@ export function getWebviewContent(
   const hiddenModels = getHiddenModels(context);
   const preferredSort = getPreferredSort(context);
   const preferredFilter = getPreferredFilter(context);
+
+  let iconBase64 = '';
+  try {
+    const iconPath = vscode.Uri.joinPath(
+      context.extensionUri,
+      'media',
+      'icon.png'
+    ).fsPath;
+    if (fs.existsSync(iconPath)) {
+      iconBase64 = `data:image/png;base64,${fs
+        .readFileSync(iconPath)
+        .toString('base64')}`;
+    }
+  } catch {}
 
   const providerSet = new Set<string>();
   for (const it of data.items) {
@@ -737,7 +752,11 @@ export function getWebviewContent(
 <body>
   <div class="header">
     <div class="header-left">
-      <h1><span class="logo">📊</span> 9Router Monitor Pro</h1>
+      <h1>${
+        iconBase64
+          ? `<img src="${iconBase64}" class="logo" style="width: 28px; height: 28px; vertical-align: middle; border-radius: 6px; margin-right: 8px; box-shadow: 0 0 12px rgba(0, 180, 255, 0.4);" alt="Logo" />`
+          : '<span class="logo">📊</span>'
+      } 9Router Monitor Pro</h1>
       <div class="updated">Updated: ${escHtml(formatDate(data.fetchedAt.toISOString()))} · Auto-refresh: ${cfg.intervalSeconds}s</div>
     </div>
     <div class="header-actions">
