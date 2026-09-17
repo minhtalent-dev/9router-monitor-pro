@@ -41,7 +41,7 @@ export function syncDashboardWebview(
 export async function showDetails(
   context: vscode.ExtensionContext,
   cfg: ExtensionConfig,
-  onRefresh: () => Promise<void>
+  onRefresh: (isManual?: boolean) => Promise<void>
 ): Promise<void> {
   const password = await context.secrets.get(SECRET_PASSWORD);
   const sessionToken = await context.secrets.get(SECRET_SESSION_TOKEN);
@@ -50,32 +50,32 @@ export async function showDetails(
 
   if (!password && !sessionToken && !apiKey && !cliToken) {
     const pick = await vscode.window.showWarningMessage(
-      '9Router connection is not configured.',
+      '[9Router Pro] Connection is not configured.',
       'Configure Now'
     );
     if (pick === 'Configure Now') {
-      await setConnection(context, onRefresh);
+      await setConnection(context, () => onRefresh(true));
     }
     return;
   }
 
   let dashboard = getLastDashboard();
   if (!dashboard) {
-    await onRefresh();
+    await onRefresh(true);
     dashboard = getLastDashboard();
   }
 
   const lastErr = getLastError();
   if (lastErr && !dashboard) {
     const pick = await vscode.window.showErrorMessage(
-      `9Router Monitor Pro: ${lastErr}`,
+      `[9Router Pro] Connection Error: ${lastErr}`,
       'Retry',
       'Change Connection'
     );
     if (pick === 'Retry') {
-      await onRefresh();
+      await onRefresh(true);
     } else if (pick === 'Change Connection') {
-      await setConnection(context, onRefresh);
+      await setConnection(context, () => onRefresh(true));
     }
     return;
   }
@@ -112,13 +112,13 @@ export async function showDetails(
       newActive?: boolean;
     }) => {
       if (msg.command === 'refresh') {
-        await onRefresh();
+        await onRefresh(true);
         syncDashboardWebview(context, cfg);
       } else if (msg.command === 'setConnection') {
-        await setConnection(context, onRefresh);
+        await setConnection(context, () => onRefresh(true));
         syncDashboardWebview(context, cfg);
       } else if (msg.command === 'changeApiKey') {
-        await setApiKey(context, onRefresh);
+        await setApiKey(context, () => onRefresh(true));
         syncDashboardWebview(context, cfg);
       } else if (
         (msg.command === 'togglePinAccount' || msg.command === 'pinAccount') &&
@@ -130,7 +130,7 @@ export async function showDetails(
             (id) => id !== msg.accountId
           );
           vscode.window.showInformationMessage(
-            'Unpinned account from Status Bar.'
+            '[9Router Pro] Unpinned account from Status Bar.'
           );
         } else {
           pinnedAccountIds = [...pinnedAccountIds, msg.accountId];
@@ -138,7 +138,7 @@ export async function showDetails(
             (it) => it.connection.id === msg.accountId
           )?.connection;
           vscode.window.showInformationMessage(
-            `Pinned ${
+            `[9Router Pro] Pinned ${
               conn ? displayName(conn) : msg.accountId
             } to Status Bar.`
           );
@@ -153,7 +153,7 @@ export async function showDetails(
         const auth = await getAuthContext(context, cfg.baseUrl);
         if (!auth) {
           vscode.window.showErrorMessage(
-            'No authentication credentials found to connect to 9Router.'
+            '[9Router Pro] No authentication credentials found to connect to 9Router.'
           );
           return;
         }
@@ -168,14 +168,14 @@ export async function showDetails(
           )?.connection;
           const name = conn ? displayName(conn) : msg.connectionId;
           vscode.window.showInformationMessage(
-            `Account ${name} is now ${msg.newActive ? 'Active' : 'Inactive'}.`
+            `[9Router Pro] Account ${name} is now ${msg.newActive ? 'Active' : 'Inactive'}.`
           );
-          await onRefresh();
+          await onRefresh(true);
           syncDashboardWebview(context, cfg);
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
           vscode.window.showErrorMessage(
-            `Failed to update account status: ${errMsg}`
+            `[9Router Pro] Failed to update account status: ${errMsg}`
           );
         }
       } else if (
@@ -187,12 +187,12 @@ export async function showDetails(
         if (pinnedModels.includes(modelKey)) {
           pinnedModels = pinnedModels.filter((m) => m !== modelKey);
           vscode.window.showInformationMessage(
-            `Unpinned ${quotaTitle(modelKey)} from Status Bar.`
+            `[9Router Pro] Unpinned ${quotaTitle(modelKey)} from Status Bar.`
           );
         } else {
           pinnedModels = [...pinnedModels, modelKey];
           vscode.window.showInformationMessage(
-            `Pinned ${quotaTitle(modelKey)} to Status Bar.`
+            `[9Router Pro] Pinned ${quotaTitle(modelKey)} to Status Bar.`
           );
         }
         await setPinnedModels(context, pinnedModels);
@@ -203,10 +203,14 @@ export async function showDetails(
         let updated: string[];
         if (hidden.includes(msg.model)) {
           updated = hidden.filter((m) => m !== msg.model);
-          vscode.window.showInformationMessage(`Model ${msg.model} unhidden.`);
+          vscode.window.showInformationMessage(
+            `[9Router Pro] Model ${msg.model} unhidden.`
+          );
         } else {
           updated = [...hidden, msg.model];
-          vscode.window.showInformationMessage(`Model ${msg.model} hidden.`);
+          vscode.window.showInformationMessage(
+            `[9Router Pro] Model ${msg.model} hidden.`
+          );
         }
         await setHiddenModels(context, updated);
         syncDashboardWebview(context, cfg);

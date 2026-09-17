@@ -11,7 +11,8 @@ import {
   setCurrentContext,
   setLastDashboard,
   setLastError,
-  getLastDashboard
+  getLastDashboard,
+  getLastError
 } from './services/stateManager';
 import { fetchDashboard } from './services/apiClient';
 import { initStatusBar, renderStatusBar } from './ui/statusBar';
@@ -35,12 +36,15 @@ export function activate(context: vscode.ExtensionContext): void {
       openQuickMenu(
         context,
         getConfig(),
-        () => refresh(context),
-        () => showDetails(context, getConfig(), () => refresh(context))
+        (isManual?: boolean) => refresh(context, isManual),
+        () =>
+          showDetails(context, getConfig(), (isManual?: boolean) =>
+            refresh(context, isManual)
+          )
       )
     ),
     vscode.commands.registerCommand('aiTokenUsage.refresh', () =>
-      refresh(context)
+      refresh(context, true)
     ),
     vscode.commands.registerCommand('aiTokenUsage.setApiKey', () =>
       setApiKey(context, () => refresh(context))
@@ -49,7 +53,9 @@ export function activate(context: vscode.ExtensionContext): void {
       setConnection(context, () => refresh(context))
     ),
     vscode.commands.registerCommand('aiTokenUsage.showDetails', () =>
-      showDetails(context, getConfig(), () => refresh(context))
+      showDetails(context, getConfig(), (isManual?: boolean) =>
+        refresh(context, isManual)
+      )
     ),
     vscode.commands.registerCommand('aiTokenUsage.setInterval', () =>
       setRefreshInterval(getConfig())
@@ -109,11 +115,43 @@ export function scheduleRefresh(context: vscode.ExtensionContext): void {
   }
   const { intervalSeconds } = getConfig();
   refreshTimer = setInterval(() => {
-    void refresh(context);
+    void refresh(context, false);
   }, intervalSeconds * 1000);
 }
 
-export async function refresh(context: vscode.ExtensionContext): Promise<void> {
+export async function refresh(
+  context: vscode.ExtensionContext,
+  isManual = false
+): Promise<void> {
+  if (isManual) {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: '9Router: Fetching latest quota data...',
+        cancellable: false
+      },
+      async () => {
+        await executeRefresh(context);
+      }
+    );
+    const lastErr = getLastError();
+    if (lastErr) {
+      vscode.window.showErrorMessage(
+        `[9Router Pro] Refresh failed: ${lastErr}`
+      );
+    } else {
+      const dashboard = getLastDashboard();
+      const count = dashboard?.items.length ?? 0;
+      vscode.window.showInformationMessage(
+        `[9Router Pro] Refreshed successfully (${count} active accounts).`
+      );
+    }
+  } else {
+    await executeRefresh(context);
+  }
+}
+
+async function executeRefresh(context: vscode.ExtensionContext): Promise<void> {
   setCurrentContext(context);
   const config = getConfig();
   const password = await context.secrets.get(SECRET_PASSWORD);

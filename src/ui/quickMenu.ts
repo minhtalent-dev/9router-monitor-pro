@@ -81,11 +81,13 @@ export async function setConnection(
     try {
       const sessionToken = await loginDashboard(cleanUrl, trimmedPassword);
       await context.secrets.store(SECRET_SESSION_TOKEN, sessionToken);
-      vscode.window.showInformationMessage('Successfully connected to 9Router!');
+      vscode.window.showInformationMessage(
+        '[9Router Pro] Connected successfully to 9Router!'
+      );
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       vscode.window.showWarningMessage(
-        `Saved Base URL, but authentication failed: ${errMsg} Please check password or Tunnel status.`
+        `[9Router Pro] Saved Base URL, but authentication failed: ${errMsg} Please check password or Tunnel status.`
       );
     }
   } else {
@@ -93,9 +95,13 @@ export async function setConnection(
     await context.secrets.delete(SECRET_SESSION_TOKEN);
     const cliToken = getLocalCliToken();
     if (cliToken) {
-      vscode.window.showInformationMessage('Saved Base URL and local mode.');
+      vscode.window.showInformationMessage(
+        '[9Router Pro] Saved Base URL and local mode.'
+      );
     } else {
-      vscode.window.showInformationMessage('Dashboard password removed.');
+      vscode.window.showInformationMessage(
+        '[9Router Pro] Dashboard password removed.'
+      );
     }
   }
 
@@ -122,10 +128,10 @@ export async function setApiKey(
 
   if (value.trim() === '') {
     await context.secrets.delete(SECRET_API_KEY);
-    vscode.window.showInformationMessage('API key cleared.');
+    vscode.window.showInformationMessage('[9Router Pro] API key cleared.');
   } else {
     await context.secrets.store(SECRET_API_KEY, value.trim());
-    vscode.window.showInformationMessage('API key saved.');
+    vscode.window.showInformationMessage('[9Router Pro] API key saved.');
   }
   await onRefresh();
 }
@@ -180,7 +186,7 @@ export async function setDisplayMode(
     vscode.ConfigurationTarget.Global
   );
   vscode.window.showInformationMessage(
-    `Status Bar display style set to: ${selected.mode}`
+    `[9Router Pro] Status Bar display style set to: ${selected.mode}`
   );
   await onRefresh();
 }
@@ -268,7 +274,7 @@ export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
       vscode.ConfigurationTarget.Global
     );
     vscode.window.showInformationMessage(
-      `Auto-refresh interval set to ${seconds} seconds.`
+      `[9Router Pro] Auto-refresh interval set to ${seconds} seconds.`
     );
   }
 }
@@ -279,7 +285,7 @@ async function showPinAccountQuickPick(
 ): Promise<void> {
   const lastDashboard = getLastDashboard();
   if (!lastDashboard || lastDashboard.items.length === 0) {
-    vscode.window.showWarningMessage('No accounts available.');
+    vscode.window.showWarningMessage('[9Router Pro] No accounts available.');
     return;
   }
   const pinnedAccountIds = getPinnedAccountIds(context);
@@ -325,7 +331,7 @@ async function showPinAccountQuickPick(
 
   renderStatusBar(cfg);
   vscode.window.showInformationMessage(
-    `Updated ${selected.length} pinned account(s) on Status Bar.`
+    `[9Router Pro] Updated ${selected.length} pinned account(s) on Status Bar.`
   );
 }
 
@@ -335,7 +341,7 @@ async function showPinModelQuickPick(
 ): Promise<void> {
   const lastDashboard = getLastDashboard();
   if (!lastDashboard || lastDashboard.items.length === 0) {
-    vscode.window.showWarningMessage('No accounts available.');
+    vscode.window.showWarningMessage('[9Router Pro] No accounts available.');
     return;
   }
 
@@ -364,7 +370,9 @@ async function showPinModelQuickPick(
   }
 
   if (modelKeysMap.size === 0) {
-    vscode.window.showWarningMessage('No models found across accounts.');
+    vscode.window.showWarningMessage(
+      '[9Router Pro] No models found across accounts.'
+    );
     return;
   }
 
@@ -402,7 +410,7 @@ async function showPinModelQuickPick(
 
   renderStatusBar(cfg);
   vscode.window.showInformationMessage(
-    `Updated ${selected.length} pinned model(s) on Status Bar.`
+    `[9Router Pro] Updated ${selected.length} pinned model(s) on Status Bar.`
   );
 }
 
@@ -412,7 +420,7 @@ async function showToggleAccountQuickPick(
 ): Promise<void> {
   const lastDashboard = getLastDashboard();
   if (!lastDashboard || lastDashboard.items.length === 0) {
-    vscode.window.showWarningMessage('No accounts available.');
+    vscode.window.showWarningMessage('[9Router Pro] No accounts available.');
     return;
   }
 
@@ -451,7 +459,7 @@ async function showToggleAccountQuickPick(
   const auth = await getAuthContext(context);
   if (!auth) {
     vscode.window.showErrorMessage(
-      'No authentication credentials found to connect to 9Router.'
+      '[9Router Pro] No authentication credentials found to connect to 9Router.'
     );
     return;
   }
@@ -460,13 +468,13 @@ async function showToggleAccountQuickPick(
   try {
     await updateProviderActive(auth, picked.connectionId, newActive);
     vscode.window.showInformationMessage(
-      `Account ${picked.name} is now ${newActive ? 'Active' : 'Inactive'}.`
+      `[9Router Pro] Account ${picked.name} is now ${newActive ? 'Active' : 'Inactive'}.`
     );
     await onRefresh();
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     vscode.window.showErrorMessage(
-      `Failed to update account status: ${errMsg}`
+      `[9Router Pro] Failed to update account status: ${errMsg}`
     );
   }
 }
@@ -474,7 +482,7 @@ async function showToggleAccountQuickPick(
 export async function openQuickMenu(
   context: vscode.ExtensionContext,
   cfg: ExtensionConfig,
-  onRefresh: () => Promise<void>,
+  onRefresh: (isManual?: boolean) => Promise<void>,
   onShowDetails: () => Promise<void>
 ): Promise<void> {
   if (!getLastDashboard()) {
@@ -566,8 +574,7 @@ export async function openQuickMenu(
       await onShowDetails();
       break;
     case 'refresh':
-      await onRefresh();
-      vscode.window.showInformationMessage('9Router data refreshed.');
+      await onRefresh(true);
       break;
     case 'setInterval':
       await setRefreshInterval(cfg);

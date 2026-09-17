@@ -799,6 +799,13 @@ export function getWebviewContent(
     const chips = document.querySelectorAll('.filter-chip');
 
     document.getElementById('refreshBtn').addEventListener('click', () => {
+      const btn = document.getElementById('refreshBtn');
+      if (btn && !btn.disabled) {
+        btn.disabled = true;
+        btn.innerHTML = '⟳ Refreshing...';
+        btn.style.opacity = '0.7';
+        btn.style.cursor = 'not-allowed';
+      }
       vscode.postMessage({ command: 'refresh' });
     });
     document.getElementById('setConnectionBtn').addEventListener('click', () => {
