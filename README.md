@@ -83,7 +83,7 @@ npx @vscode/vsce package --no-dependencies
 
 Install directly into VS Code or Antigravity:
 ```powershell
-code --install-extension 9router-monitor-pro-0.1.0.vsix --force
+code --install-extension 9router-monitor-pro-1.0.0.vsix --force
 ```
 
 ---
