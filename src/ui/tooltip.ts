@@ -28,7 +28,16 @@ export function createDashboardTooltip(
   cfg: ExtensionConfig
 ): vscode.MarkdownString {
   const md = new vscode.MarkdownString(undefined, true);
-  md.isTrusted = true;
+  md.isTrusted = {
+    enabledCommands: [
+      'aiTokenUsage.openQuickMenu',
+      'aiTokenUsage.showDetails',
+      'aiTokenUsage.setTooltipMode',
+      'aiTokenUsage.setDisplayMode',
+      'aiTokenUsage.setConnection',
+      'aiTokenUsage.refresh'
+    ]
+  };
   md.supportHtml = true;
 
   const currentContext = getCurrentContext();

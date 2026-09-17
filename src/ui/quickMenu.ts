@@ -143,7 +143,8 @@ export async function setDisplayMode(
 
   const selected = await vscode.window.showQuickPick(items, {
     title: `9Router Monitor Pro — Status Bar Display Style (Current: ${currentMode})`,
-    placeHolder: 'Select status bar display style'
+    placeHolder: 'Select status bar display style',
+    ignoreFocusOut: true
   });
 
   if (!selected) {
@@ -156,6 +157,7 @@ export async function setDisplayMode(
     selected.mode,
     vscode.ConfigurationTarget.Global
   );
+  cfg.statusDisplayMode = selected.mode;
   vscode.window.showInformationMessage(
     `[9Router Pro] Status Bar display style set to: ${selected.mode}`
   );
@@ -166,6 +168,9 @@ export async function setTooltipMode(
   cfg: ExtensionConfig,
   onRefresh: () => Promise<void>
 ): Promise<void> {
+  // Yield execution slightly so hover tooltip dismissal does not dismiss QuickPick
+  await new Promise((resolve) => setTimeout(resolve, 60));
+
   const currentMode = cfg.tooltipDisplayMode ?? 'all';
 
   interface TooltipModePickItem extends vscode.QuickPickItem {
@@ -201,7 +206,8 @@ export async function setTooltipMode(
 
   const selected = await vscode.window.showQuickPick(items, {
     title: `9Router Monitor Pro — Tooltip Detail Level (Current: ${currentMode})`,
-    placeHolder: 'Select tooltip content style'
+    placeHolder: 'Select tooltip content style',
+    ignoreFocusOut: true
   });
 
   if (!selected) {
@@ -214,6 +220,7 @@ export async function setTooltipMode(
     selected.mode,
     vscode.ConfigurationTarget.Global
   );
+  cfg.tooltipDisplayMode = selected.mode;
   vscode.window.showInformationMessage(
     `[9Router Pro] Tooltip detail level set to: ${selected.mode}`
   );
@@ -263,7 +270,8 @@ export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
 
   const selected = await vscode.window.showQuickPick(items, {
     title: `9Router Monitor Pro — Auto-Refresh Interval (Current: ${currentInterval}s)`,
-    placeHolder: 'Select auto-refresh interval'
+    placeHolder: 'Select auto-refresh interval',
+    ignoreFocusOut: true
   });
 
   if (!selected) {
@@ -277,6 +285,7 @@ export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
       title: '9Router Monitor Pro — Custom Refresh Interval',
       prompt: 'Enter refresh interval in seconds (minimum 10 seconds)',
       value: String(currentInterval),
+      ignoreFocusOut: true,
       validateInput: (val) => {
         const num = Number(val);
         if (!Number.isInteger(num) || num < 10) {
@@ -302,6 +311,7 @@ export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
       seconds,
       vscode.ConfigurationTarget.Global
     );
+    cfg.intervalSeconds = seconds;
     vscode.window.showInformationMessage(
       `[9Router Pro] Auto-refresh interval set to ${seconds} seconds.`
     );
@@ -589,7 +599,8 @@ export async function openQuickMenu(
     title: '⭐ 9Router Monitor Pro — Quick Menu',
     placeHolder: 'Select a quick action or open Dashboard',
     matchOnDescription: true,
-    matchOnDetail: true
+    matchOnDetail: true,
+    ignoreFocusOut: true
   });
 
   if (!selected) {
