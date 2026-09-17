@@ -9,9 +9,9 @@
 | **Người tạo** | JARVIS |
 | **Priority** | 🟡 Medium |
 | **Effort** | M (1-4h) |
-| **Status** | 📋 Planning |
+| **Status** | ✅ Completed |
 | **Branch** | `refactor/modular-clean-architecture` |
-| **Lifecycle** | `Ready` |
+| **Lifecycle** | `Done` |
 | **Evidence** | `Confirmed` |
 | **Project root** | `d:\1_Project\66_9router_Usage\9RouterTokenUsage` |
 | **Plan path** | `planning/tasks/20260917_modular_clean_architecture/TASK_MODULAR_CLEAN_ARCHITECTURE.md` |
@@ -200,17 +200,17 @@ flowchart TD
 - **Depends on:** Phase 3
 - **Files:** `src/views/dashboardTemplate.ts`, `src/ui/dashboardPanel.ts`
 - **Tasks:**
-  - [ ] Tạo `src/views/dashboardTemplate.ts`: hàm `getWebviewContent` (toàn bộ mã HTML, CSS Fluent Dark Theme, JavaScript client-side search/filter/sort).
-  - [ ] Tạo `src/ui/dashboardPanel.ts`: quản lý biến `detailsPanel`, hàm `showDetails` (nhận callback `onRefresh`), `syncDashboardWebview()`, lắng nghe `onDidReceiveMessage` (xử lý các sự kiện `refresh`, `setConnection`, `togglePinAccount`, `togglePinModel`, `toggleProviderActive`, v.v.).
+  - [x] Tạo `src/views/dashboardTemplate.ts`: hàm `getWebviewContent` (toàn bộ mã HTML, CSS Fluent Dark Theme, JavaScript client-side search/filter/sort).
+  - [x] Tạo `src/ui/dashboardPanel.ts`: quản lý biến `detailsPanel`, hàm `showDetails` (nhận callback `onRefresh`), `syncDashboardWebview()`, lắng nghe `onDidReceiveMessage` (xử lý các sự kiện `refresh`, `setConnection`, `togglePinAccount`, `togglePinModel`, `toggleProviderActive`, v.v.).
 
 ### Phase 5: Tinh gọn Entrypoint & Kiểm chứng Hoàn tất
 - **Depends on:** Phase 4
 - **Files:** `src/extension.ts`
 - **Tasks:**
-  - [ ] Tái cấu trúc `src/extension.ts`: import các module từ `services/`, `ui/`, `types/`; chỉ giữ lại `activate()`, `deactivate()`, `refresh()`, `scheduleRefresh()`, `getConfig()`.
-  - [ ] Kiểm tra lỗi biên dịch TypeScript (`npm run compile`).
-  - [ ] Chạy `quickbuild.bat` đóng gói `.vsix` mới và nạp vào VS Code.
-  - [ ] Kiểm chứng toàn bộ 100% tính năng hoạt động trơn tru, không có sự sai khác so với bản cũ.
+  - [x] Tái cấu trúc `src/extension.ts`: import các module từ `services/`, `ui/`, `types/`; chỉ giữ lại `activate()`, `deactivate()`, `refresh()`, `scheduleRefresh()`, `getConfig()`.
+  - [x] Kiểm tra lỗi biên dịch TypeScript (`npm run compile`).
+  - [x] Chạy `quickbuild.bat` đóng gói `.vsix` mới và nạp vào VS Code.
+  - [x] Kiểm chứng toàn bộ 100% tính năng hoạt động trơn tru, không có sự sai khác so với bản cũ.
 
 ---
 
@@ -246,12 +246,12 @@ flowchart TD
 
 ## 9. Acceptance Criteria
 
-- [ ] **AC-1:** Mã nguồn `src/` được chia thành cấu trúc thư mục rõ ràng (`types/`, `services/`, `ui/`, `views/`, `utils/`), file `src/extension.ts` dưới 120 dòng.
-- [ ] **AC-2:** Webpack biên dịch thành công (`npm run compile` pass 100%), không có cảnh báo circular dependency.
-- [ ] **AC-3:** Tính năng Multi-Pin và Cộng dồn Aggregate trên Status Bar hoạt động hoàn toàn như bản cũ.
-- [ ] **AC-4:** Hiển thị thời gian Reset Time trên Status Bar và bảng Markdown Tooltip giữ nguyên độ chính xác.
-- [ ] **AC-5:** Webview Dashboard Pro Max mở được, tìm kiếm, lọc provider, ghim tài khoản/model, toggle active không lỗi.
-- [ ] **AC-6:** Đóng gói file `9router-monitor-pro-1.0.0.vsix` hoàn tất bằng `quickbuild.bat` và cài đặt vào VS Code không lỗi.
+- [x] **AC-1:** Mã nguồn `src/` được chia thành cấu trúc thư mục rõ ràng (`types/`, `services/`, `ui/`, `views/`, `utils/`), file `src/extension.ts` dưới 120 dòng.
+- [x] **AC-2:** Webpack biên dịch thành công (`npm run compile` pass 100%), không có cảnh báo circular dependency.
+- [x] **AC-3:** Tính năng Multi-Pin và Cộng dồn Aggregate trên Status Bar hoạt động hoàn toàn như bản cũ.
+- [x] **AC-4:** Hiển thị thời gian Reset Time trên Status Bar và bảng Markdown Tooltip giữ nguyên độ chính xác.
+- [x] **AC-5:** Webview Dashboard Pro Max mở được, tìm kiếm, lọc provider, ghim tài khoản/model, toggle active không lỗi.
+- [x] **AC-6:** Đóng gói file `9router-monitor-pro-1.0.0.vsix` hoàn tất bằng `quickbuild.bat` và cài đặt vào VS Code không lỗi.
 
 ---
 
