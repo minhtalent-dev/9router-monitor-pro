@@ -128,7 +128,6 @@ All commands are prefixed with `9Router Monitor Pro` in the Command Palette (`Ct
 | `aiTokenUsage.setConnection` | `Set Connection (URL & Password)` | Configure Base URL (Cloudflare Tunnel or Local) and Dashboard Password |
 | `aiTokenUsage.setDisplayMode` | `Set Status Bar Display Style` | Switch between Compact, Detailed, and Minimal status bar styles |
 | `aiTokenUsage.setInterval` | `Set Refresh Interval` | Set auto-refresh frequency (15s, 30s, 60s, 2m, 5m, or custom) |
-| `aiTokenUsage.setApiKey` | `Set API Key` | Manually store or remove a custom 9Router API key |
 
 ---
 

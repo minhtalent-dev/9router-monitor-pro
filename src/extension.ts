@@ -20,8 +20,7 @@ import {
   openQuickMenu,
   setConnection,
   setRefreshInterval,
-  setDisplayMode,
-  setApiKey
+  setDisplayMode
 } from './ui/quickMenu';
 import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
 
@@ -45,9 +44,6 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiTokenUsage.refresh', () =>
       refresh(context, true)
-    ),
-    vscode.commands.registerCommand('aiTokenUsage.setApiKey', () =>
-      setApiKey(context, () => refresh(context))
     ),
     vscode.commands.registerCommand('aiTokenUsage.setConnection', () =>
       setConnection(context, () => refresh(context))

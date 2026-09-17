@@ -52,10 +52,6 @@
         "title": "9Router Monitor Pro: Refresh"
       },
       {
-        "command": "aiTokenUsage.setApiKey",
-        "title": "9Router Monitor Pro: Set API Key"
-      },
-      {
         "command": "aiTokenUsage.setConnection",
         "title": "9Router Monitor Pro: Set Connection (URL & Password)"
       },

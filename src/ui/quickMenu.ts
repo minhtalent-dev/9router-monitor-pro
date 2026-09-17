@@ -11,7 +11,6 @@ import {
   getAuthContext,
   getLocalCliToken,
   loginDashboard,
-  SECRET_API_KEY,
   SECRET_PASSWORD,
   SECRET_SESSION_TOKEN
 } from '../services/authManager';
@@ -105,34 +104,6 @@ export async function setConnection(
     }
   }
 
-  await onRefresh();
-}
-
-export async function setApiKey(
-  context: vscode.ExtensionContext,
-  onRefresh: () => Promise<void>
-): Promise<void> {
-  const existing = await context.secrets.get(SECRET_API_KEY);
-  const value = await vscode.window.showInputBox({
-    title: '9Router Monitor Pro — API Key',
-    prompt: 'Enter your 9Router API key. Leave blank to delete saved key.',
-    password: true,
-    value: existing ?? '',
-    ignoreFocusOut: true,
-    placeHolder: 'sk-...'
-  });
-
-  if (value === undefined) {
-    return;
-  }
-
-  if (value.trim() === '') {
-    await context.secrets.delete(SECRET_API_KEY);
-    vscode.window.showInformationMessage('[9Router Pro] API key cleared.');
-  } else {
-    await context.secrets.store(SECRET_API_KEY, value.trim());
-    vscode.window.showInformationMessage('[9Router Pro] API key saved.');
-  }
   await onRefresh();
 }
 

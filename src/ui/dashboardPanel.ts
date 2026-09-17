@@ -25,7 +25,7 @@ import {
 import { displayName, quotaTitle } from '../utils/helpers';
 import { getWebviewContent } from '../views/dashboardTemplate';
 import { renderStatusBar } from './statusBar';
-import { setApiKey, setConnection } from './quickMenu';
+import { setConnection } from './quickMenu';
 
 export function syncDashboardWebview(
   context: vscode.ExtensionContext,
@@ -116,9 +116,6 @@ export async function showDetails(
         syncDashboardWebview(context, cfg);
       } else if (msg.command === 'setConnection') {
         await setConnection(context, () => onRefresh(true));
-        syncDashboardWebview(context, cfg);
-      } else if (msg.command === 'changeApiKey') {
-        await setApiKey(context, () => onRefresh(true));
         syncDashboardWebview(context, cfg);
       } else if (
         (msg.command === 'togglePinAccount' || msg.command === 'pinAccount') &&
