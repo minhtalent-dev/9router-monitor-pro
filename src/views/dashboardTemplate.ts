@@ -743,7 +743,6 @@ export function getWebviewContent(
     <div class="header-actions">
       <button class="btn btn-primary" id="refreshBtn">⟳ Refresh</button>
       <button class="btn" id="setConnectionBtn">⚙ Setup Connection</button>
-      <button class="btn" id="changeApiKeyBtn">🔑 Set API Key</button>
     </div>
   </div>
 
@@ -804,9 +803,6 @@ export function getWebviewContent(
     });
     document.getElementById('setConnectionBtn').addEventListener('click', () => {
       vscode.postMessage({ command: 'setConnection' });
-    });
-    document.getElementById('changeApiKeyBtn').addEventListener('click', () => {
-      vscode.postMessage({ command: 'changeApiKey' });
     });
 
     document.addEventListener('click', (e) => {
