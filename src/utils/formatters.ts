@@ -13,7 +13,15 @@ export function formatDate(iso: string): string {
   if (Number.isNaN(date.getTime())) {
     return iso;
   }
-  return date.toLocaleString();
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const timeStr = date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+  return `${day}/${month}/${year}, ${timeStr}`;
 }
 
 export function formatResetCompact(iso?: string): string {
@@ -30,7 +38,9 @@ export function formatResetCompact(iso?: string): string {
   if (isToday) {
     return timeStr;
   }
-  return `${d.getMonth() + 1}/${d.getDate()} ${timeStr}`;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month} ${timeStr}`;
 }
 
 export function renderTextBar(pct: number, width = 8): string {
