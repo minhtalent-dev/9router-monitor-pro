@@ -162,6 +162,64 @@ export async function setDisplayMode(
   await onRefresh();
 }
 
+export async function setTooltipMode(
+  cfg: ExtensionConfig,
+  onRefresh: () => Promise<void>
+): Promise<void> {
+  const currentMode = cfg.tooltipDisplayMode ?? 'all';
+
+  interface TooltipModePickItem extends vscode.QuickPickItem {
+    mode: 'all' | 'summary' | 'accounts';
+  }
+
+  const items: TooltipModePickItem[] = [
+    {
+      label: '$(checklist) All Details (Default)',
+      description: 'Aggregate Summary + 10 Accounts Breakdown',
+      detail:
+        'Shows full aggregate model table followed by individual account list',
+      mode: 'all',
+      picked: currentMode === 'all'
+    },
+    {
+      label: '$(table) Aggregate Summary Only',
+      description: 'Clean & Compact (Model Summary table only)',
+      detail:
+        'Hides the long per-account list to keep the tooltip compact and prevent screen overflow',
+      mode: 'summary',
+      picked: currentMode === 'summary'
+    },
+    {
+      label: '$(organization) Account List Only',
+      description: 'Account Breakdown only',
+      detail:
+        'Shows individual account list without the top summary table',
+      mode: 'accounts',
+      picked: currentMode === 'accounts'
+    }
+  ];
+
+  const selected = await vscode.window.showQuickPick(items, {
+    title: `9Router Monitor Pro — Tooltip Detail Level (Current: ${currentMode})`,
+    placeHolder: 'Select tooltip content style'
+  });
+
+  if (!selected) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('aiTokenUsage');
+  await config.update(
+    'tooltipDisplayMode',
+    selected.mode,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.showInformationMessage(
+    `[9Router Pro] Tooltip detail level set to: ${selected.mode}`
+  );
+  await onRefresh();
+}
+
 export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
   const currentInterval = cfg.intervalSeconds;
 
@@ -513,6 +571,13 @@ export async function openQuickMenu(
       action: 'setDisplayMode'
     },
     {
+      label: `$(table) Tooltip Detail Level (${cfg.tooltipDisplayMode ?? 'all'})...`,
+      description: 'All / Summary Only / Accounts Only',
+      detail:
+        'Configure tooltip content (Aggregate Summary only, Account List only, or All)',
+      action: 'setTooltipMode'
+    },
+    {
       label: '$(gear) Setup Connection (URL & Password)',
       description: cfg.baseUrl,
       detail: 'Reconfigure Base URL, Password, or switch to Local CLI Token',
@@ -552,6 +617,9 @@ export async function openQuickMenu(
       break;
     case 'setDisplayMode':
       await setDisplayMode(cfg, onRefresh);
+      break;
+    case 'setTooltipMode':
+      await setTooltipMode(cfg, onRefresh);
       break;
     case 'setConnection':
       await setConnection(context, onRefresh);

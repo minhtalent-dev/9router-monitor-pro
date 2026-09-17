@@ -66,11 +66,21 @@
       {
         "command": "aiTokenUsage.setDisplayMode",
         "title": "9Router Monitor Pro: Set Status Bar Display Style"
+      },
+      {
+        "command": "aiTokenUsage.setTooltipMode",
+        "title": "9Router Monitor Pro: Set Tooltip Detail Level"
       }
     ],
     "configuration": {
       "title": "9Router Monitor Pro",
       "properties": {
+        "aiTokenUsage.tooltipDisplayMode": {
+          "type": "string",
+          "enum": ["all", "summary", "accounts"],
+          "default": "all",
+          "description": "Tooltip content detail level: all (both aggregate summary and account list), summary (aggregate summary table only), accounts (account list only)."
+        },
         "aiTokenUsage.statusDisplayMode": {
           "type": "string",
           "enum": ["compact", "detailed", "minimal"],

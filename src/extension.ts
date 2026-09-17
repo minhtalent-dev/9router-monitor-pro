@@ -20,7 +20,8 @@ import {
   openQuickMenu,
   setConnection,
   setRefreshInterval,
-  setDisplayMode
+  setDisplayMode,
+  setTooltipMode
 } from './ui/quickMenu';
 import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
 
@@ -58,6 +59,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiTokenUsage.setDisplayMode', () =>
       setDisplayMode(getConfig(), () => refresh(context))
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.setTooltipMode', () =>
+      setTooltipMode(getConfig(), () => refresh(context))
     )
   );
 
@@ -97,6 +101,10 @@ export function getConfig(): ExtensionConfig {
     statusDisplayMode: cfg.get<'compact' | 'detailed' | 'minimal'>(
       'statusDisplayMode',
       'compact'
+    ),
+    tooltipDisplayMode: cfg.get<'all' | 'summary' | 'accounts'>(
+      'tooltipDisplayMode',
+      'all'
     ),
     intervalSeconds: Math.max(
       10,

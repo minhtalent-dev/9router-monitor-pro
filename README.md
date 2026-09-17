@@ -127,6 +127,7 @@ All commands are prefixed with `9Router Monitor Pro` in the Command Palette (`Ct
 | `aiTokenUsage.refresh` | `Refresh` | Manually trigger immediate quota check with progress indicator |
 | `aiTokenUsage.setConnection` | `Set Connection (URL & Password)` | Configure Base URL (Cloudflare Tunnel or Local) and Dashboard Password |
 | `aiTokenUsage.setDisplayMode` | `Set Status Bar Display Style` | Switch between Compact, Detailed, and Minimal status bar styles |
+| `aiTokenUsage.setTooltipMode` | `Set Tooltip Detail Level` | Choose between All Details, Aggregate Summary Only, or Account List Only |
 | `aiTokenUsage.setInterval` | `Set Refresh Interval` | Set auto-refresh frequency (15s, 30s, 60s, 2m, 5m, or custom) |
 
 ---
@@ -138,6 +139,7 @@ Customize extension behavior in your `settings.json`:
 | Setting | Type | Default | Description |
 |:---|:---:|:---:|:---|
 | `aiTokenUsage.statusDisplayMode` | `string` | `"compact"` | Status bar style: `"compact"`, `"detailed"`, or `"minimal"` |
+| `aiTokenUsage.tooltipDisplayMode` | `string` | `"all"` | Tooltip content detail: `"all"` (both summary & accounts), `"summary"` (summary table only), or `"accounts"` (account list only) |
 | `aiTokenUsage.apiBaseUrl` | `string` | `"http://localhost:20128"` | 9Router Base URL (e.g. `http://localhost:20128` or `https://*.trycloudflare.com`) |
 | `aiTokenUsage.authMode` | `string` | `"auto"` | Authentication method: `"auto"`, `"password"`, or `"token"` |
 | `aiTokenUsage.refreshIntervalSeconds` | `number` | `60` | Auto-refresh frequency in seconds (minimum: 10) |

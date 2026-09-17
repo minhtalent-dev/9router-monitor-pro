@@ -54,6 +54,7 @@ export interface ExtensionConfig {
   statusBarQuota: string;
   intervalSeconds: number;
   statusDisplayMode: 'compact' | 'detailed' | 'minimal';
+  tooltipDisplayMode: 'all' | 'summary' | 'accounts';
 }
 
 export interface AuthContext {
