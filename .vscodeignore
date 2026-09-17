@@ -11,5 +11,6 @@ webpack.config.js
 curl_raw.txt
 *.vsix
 gen-icon.ps1
+*.bat
 planning/**
 package-lock.json
