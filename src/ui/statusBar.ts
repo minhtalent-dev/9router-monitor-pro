@@ -121,34 +121,6 @@ export function renderStatusBar(
   let hasError = false;
   let hasWarning = false;
 
-  for (const item of displayItems) {
-    const { usage } = item;
-    if (!usage || item.error || usage.limitReached) {
-      hasError = true;
-    } else {
-      if (usage.reviewLimitReached) {
-        hasWarning = true;
-      }
-      if (usage.quotas) {
-        for (const q of Object.values(usage.quotas)) {
-          if (getRemainingPercent(q) <= 15) {
-            hasWarning = true;
-          }
-        }
-      }
-    }
-  }
-
-  let icon = '$(graph)';
-  let bg: vscode.ThemeColor | undefined;
-  if (hasError) {
-    icon = '$(error)';
-    bg = new vscode.ThemeColor('statusBarItem.errorBackground');
-  } else if (hasWarning) {
-    icon = '$(warning)';
-    bg = new vscode.ThemeColor('statusBarItem.warningBackground');
-  }
-
   const mode = cfg.statusDisplayMode ?? 'compact';
 
   if (displayItems.length > 1) {
@@ -157,6 +129,10 @@ export function renderStatusBar(
         ? pinnedModels
         : [chooseQuotaName(displayItems[0].usage, cfg.statusBarQuota) ?? ''];
     const targetModels = rawModels.filter(Boolean);
+
+    if (displayItems.every((it) => !it.usage || it.error)) {
+      hasError = true;
+    }
 
     const aggParts: string[] = [];
     for (const m of targetModels) {
@@ -189,6 +165,14 @@ export function renderStatusBar(
       }
 
       if (found) {
+        if (!hasUnlimited && totalMax > 0) {
+          const remPct = (totalRemaining / totalMax) * 100;
+          if (remPct <= 5) {
+            hasError = true;
+          } else if (remPct <= 15) {
+            hasWarning = true;
+          }
+        }
         const shortName = quotaShortName(m);
         if (hasUnlimited) {
           const resetStr =
@@ -209,6 +193,16 @@ export function renderStatusBar(
       }
     }
 
+    let icon = '$(graph)';
+    let bg: vscode.ThemeColor | undefined;
+    if (hasError) {
+      icon = '$(error)';
+      bg = new vscode.ThemeColor('statusBarItem.errorBackground');
+    } else if (hasWarning) {
+      icon = '$(warning)';
+      bg = new vscode.ThemeColor('statusBarItem.warningBackground');
+    }
+
     const modelsSummary = aggParts.length > 0 ? aggParts.join(' · ') : 'N/A';
     if (mode === 'minimal') {
       statusBarItem.text = `${icon} ${modelsSummary}`;
@@ -217,11 +211,18 @@ export function renderStatusBar(
     } else {
       statusBarItem.text = `${icon} ⭐ ${displayItems.length} acc · ${modelsSummary}`;
     }
+    statusBarItem.backgroundColor = bg;
   } else {
     const item = displayItems[0];
     const { connection, usage } = item;
     const isAccountPinned = pinnedAccountIds.includes(connection.id);
     const accName = truncateName(displayName(connection), 10);
+
+    if (!usage || item.error || usage.limitReached) {
+      hasError = true;
+    } else if (usage.reviewLimitReached) {
+      hasWarning = true;
+    }
 
     let targetModelKeys: string[] = [];
     if (pinnedModels.length > 0 && usage?.quotas) {
@@ -235,6 +236,30 @@ export function renderStatusBar(
       if (fallbackModel && usage?.quotas && usage.quotas[fallbackModel]) {
         targetModelKeys = [fallbackModel];
       }
+    }
+
+    if (usage?.quotas) {
+      for (const key of targetModelKeys) {
+        const q = usage.quotas[key];
+        if (q && !q.unlimited && q.total > 0) {
+          const remPct = (q.remaining / q.total) * 100;
+          if (remPct <= 5) {
+            hasError = true;
+          } else if (remPct <= 15) {
+            hasWarning = true;
+          }
+        }
+      }
+    }
+
+    let icon = '$(graph)';
+    let bg: vscode.ThemeColor | undefined;
+    if (hasError) {
+      icon = '$(error)';
+      bg = new vscode.ThemeColor('statusBarItem.errorBackground');
+    } else if (hasWarning) {
+      icon = '$(warning)';
+      bg = new vscode.ThemeColor('statusBarItem.warningBackground');
     }
 
     let modelsStr = 'N/A';
@@ -251,9 +276,8 @@ export function renderStatusBar(
         isAccountPinned ? '⭐ ' : ''
       }${accName} · ${modelsStr}`;
     }
+    statusBarItem.backgroundColor = bg;
   }
-
-  statusBarItem.backgroundColor = bg;
   statusBarItem.tooltip = createDashboardTooltip(
     lastDashboard,
     displayItems,

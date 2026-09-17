@@ -119,7 +119,7 @@ export function getRemainingPercent(quota: QuotaData): number {
     return 100;
   }
   if (quota.total <= 0) {
-    return 0;
+    return 100;
   }
   return Math.min(100, Math.max(0, (quota.remaining / quota.total) * 100));
 }
