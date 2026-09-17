@@ -15,6 +15,9 @@ All notable changes to this project are documented in this file.
 - **Multi-Machine Connectivity**: Connect remotely via Cloudflare Tunnel with automatic Dashboard Password authentication.
 - **Zero-Config Local Discovery**: Automatically discovers local CLI credentials when running on the same machine.
 - **Modern Model Quotas**: Dynamic quota parsing for Gemini 3.8 Flash, Claude Sonnet, Antigravity, and Codex.
+- **Configurable Status Bar Display Styles**: Switch between `Compact` (default, balanced), `Detailed` (full ratio + reset times), and `Minimal` (ultra-compact numbers only).
+- **Progress Notifications & Standardized Toasts**: Integrated `vscode.window.withProgress` for manual refresh actions and unified `[9Router Pro]` status toasts.
+- **Visual Showcase Gallery**: Added official screenshots covering Webview Dashboard, Status Bar Quota Aggregation, Quick Menu, and Command Palette.
 - **100% English UI**: Standardized all UI, command titles, tooltips, settings, and documentation for international publishing.
 
 ### Fixed
