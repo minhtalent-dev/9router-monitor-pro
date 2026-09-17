@@ -1,115 +1,95 @@
-# 9Router Token Usage
+# 9Router Monitor Pro
 
-Extension VSCode theo dõi usage của các provider 9Router ngay trên **status bar góc dưới phải**.
+VS Code extension to track quota, token usage, and account health across 9Router AI providers directly in the **status bar**.
 
-Luồng dữ liệu hiện tại:
+Supports multi-account management, multi-model tracking, automatic quota aggregation, custom pinning, and remote connections via Cloudflare Tunnel.
 
-1. Gọi danh sách providers từ `GET /api/providers?page=1&pageSize=20&accountStatus=all&sort=priority&isActive=true`.
-2. Với từng provider trong `connections`, gọi `GET /api/usage/{id}`.
-3. Popup/tooltip hiển thị toàn bộ providers và usage tương ứng.
-4. Status bar chỉ hiển thị provider có `priority=1`.
+**Author**: [Minhtalent-dev](https://github.com/minhtalent-dev) · **Repository**: [github.com/minhtalent-dev/9router-monitor-pro](https://github.com/minhtalent-dev/9router-monitor-pro)
 
-## Tính năng
+---
 
-- Lấy toàn bộ providers đang active từ API 9Router.
-- Tự truy vấn usage cho từng provider theo `id`.
-- Status bar hiển thị provider `priority=1` với quota được chọn (`session` mặc định).
-- Hover status bar để xem tóm tắt toàn bộ providers.
-- Bấm status bar để mở popup chi tiết toàn bộ providers và quota `session` / `weekly`.
-- Tự đổi màu cảnh báo khi quota còn thấp hoặc API báo limit reached.
-- Lưu API key an toàn bằng VSCode SecretStorage.
+## Key Features
 
-## Cài đặt & chạy thử development
+- **Multi-Account Aggregation**: Automatically sums up quota and usage across all pinned accounts into a clean, compact status bar metric.
+- **Multi-Pin (Models & Accounts)**: Pin multiple accounts and multiple AI models simultaneously.
+- **Toggle Provider Active Status**: Enable or disable provider accounts on the fly via 9Router API.
+- **Webview Dashboard Pro Max**: Fluent Dark Theme grid layout with realtime search, provider/category filter chips, multi-criteria sorting, and hide/unhide options.
+- **Interactive Quick Menu**: Click status bar to open a persistent command palette menu for instant pinning, toggling, and refreshing without hover dismissal.
+- **Flexible Connectivity (Local Zero-Config & Remote Tunnel)**:
+  - Automatically detects local CLI token from AppData when running on the same machine.
+  - Supports connecting across machines using Cloudflare Tunnel and Dashboard Password with automatic session refresh.
+- **Secure Credential Storage**: Passwords and session tokens are encrypted via VS Code `SecretStorage`.
+
+---
+
+## Installation & Development
 
 ```powershell
 npm install
 npm run compile
 ```
 
-Sau đó nhấn `F5` trong VSCode để mở cửa sổ Extension Development Host.
+Press `F5` in VS Code to launch the Extension Development Host.
 
-## Sử dụng
+---
 
-1. Mở Command Palette (`Ctrl+Shift+P`).
-2. Chạy **AI Token Usage: Thiết lập API Key** và nhập API key dạng `sk-...`.
-3. Extension sẽ gửi đồng thời:
-   - `x-api-key: <key>`
-   - `Authorization: Bearer <key>`
-4. Status bar sẽ hiển thị usage của provider `priority=1`.
-5. Bấm status bar để xem popup đầy đủ.
+## Getting Started
 
-## Lệnh
+### Mode 1: Local Machine (Zero-Config)
+If 9Router is running on the same machine, the extension automatically discovers the local CLI credentials from AppData. All active providers and quotas display immediately.
 
-| Lệnh | Mô tả |
+### Mode 2: Remote Access via Cloudflare Tunnel
+1. Open Command Palette (`Ctrl+Shift+P`).
+2. Run: **`9Router Monitor Pro: Set Connection (URL & Password)`**.
+3. Enter **Base URL**:
+   - Remote: Enter Cloudflare Tunnel URL from 9Router (e.g., `https://rv6v39u.abc-tunnel.us`).
+   - Local: Keep default `http://localhost:20128`.
+4. Enter **Dashboard Password**:
+   - 9Router Web Dashboard password (default: `123456`).
+   - The extension authenticates, caches the session token, and automatically re-authenticates upon token expiration.
+
+---
+
+## Commands
+
+| Command | Description |
 | --- | --- |
-| `AI Token Usage: Thiết lập API Key` | Nhập / thay đổi / xoá API key |
-| `AI Token Usage: Làm mới` | Làm mới thủ công |
-| `AI Token Usage: Xem chi tiết` | Mở popup chi tiết |
+| `9Router Monitor Pro: Open Interactive Menu` | Open quick actions (pin accounts, pin models, toggle active) |
+| `9Router Monitor Pro: Set Connection (URL & Password)` | Configure Base URL (Tunnel/Local) and Dashboard Password |
+| `9Router Monitor Pro: Set API Key` | Manually configure API key (optional) |
+| `9Router Monitor Pro: Refresh` | Trigger immediate usage data refresh |
+| `9Router Monitor Pro: Show Dashboard` | Open interactive Webview matrix with search, filters, and cards |
 
-## Cấu hình
+---
 
-| Thiết lập | Mặc định | Mô tả |
+## Configuration
+
+| Setting | Default | Description |
 | --- | --- | --- |
-| `aiTokenUsage.apiBaseUrl` | `http://localhost:20128` | Base URL API 9Router |
-| `aiTokenUsage.providersPath` | `/api/providers?page=1&pageSize=20&accountStatus=all&sort=priority&isActive=true` | Endpoint lấy danh sách providers |
-| `aiTokenUsage.usagePathTemplate` | `/api/usage/{id}` | Endpoint lấy usage theo provider id |
-| `aiTokenUsage.statusBarQuota` | `session` | Quota hiển thị trên status bar (`session` hoặc `weekly`) |
-| `aiTokenUsage.refreshIntervalSeconds` | `60` | Chu kỳ tự làm mới, tối thiểu 10 giây |
+| `aiTokenUsage.apiBaseUrl` | `http://localhost:20128` | 9Router Base URL (Local or Cloudflare Tunnel) |
+| `aiTokenUsage.authMode` | `auto` | Authentication mode (`auto`, `password`, `token`) |
+| `aiTokenUsage.providersPath` | `/api/providers?page=1&pageSize=20&accountStatus=all&sort=priority&isActive=true` | Endpoint to fetch providers list |
+| `aiTokenUsage.usagePathTemplate` | `/api/usage/{id}` | Endpoint template to fetch usage by provider ID |
+| `aiTokenUsage.statusBarQuota` | `session` | Fallback quota for status bar when no model is pinned |
+| `aiTokenUsage.refreshIntervalSeconds` | `60` | Auto-refresh interval in seconds (minimum: 10) |
 
-## Response kỳ vọng
+---
 
-### Providers
-
-```json
-{
-  "connections": [
-    {
-      "id": "601951d7-871b-44e3-a5e1-7fd9d2fd8ca5",
-      "provider": "codex",
-      "authType": "oauth",
-      "name": "account@example.com",
-      "email": "account@example.com",
-      "priority": 1,
-      "isActive": true,
-      "testStatus": "active",
-      "expiresAt": "2026-06-21T10:04:04.801Z",
-      "providerSpecificData": {
-        "chatgptPlanType": "plus"
-      }
-    }
-  ]
-}
-```
-
-### Usage
-
-```json
-{
-  "plan": "plus",
-  "limitReached": false,
-  "reviewLimitReached": false,
-  "quotas": {
-    "session": {
-      "used": 38,
-      "total": 100,
-      "remaining": 62,
-      "resetAt": "2026-06-11T21:01:39.000Z",
-      "unlimited": false
-    },
-    "weekly": {
-      "used": 69,
-      "total": 100,
-      "remaining": 31,
-      "resetAt": "2026-06-12T10:12:55.000Z",
-      "unlimited": false
-    }
-  }
-}
-```
-
-## Đóng gói `.vsix`
+## Packaging `.vsix`
 
 ```powershell
-npm install -g @vscode/vsce
-vsce package
+npx @vscode/vsce package --no-dependencies
+```
+
+Install directly into VS Code or Antigravity:
+```powershell
+code --install-extension 9router-monitor-pro-0.1.0.vsix --force
+```
+
+---
+
+## License
+
+MIT License © 2026 Minhtalent-dev
+
 ```

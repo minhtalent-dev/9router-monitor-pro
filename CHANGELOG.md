@@ -1,17 +1,30 @@
-# Changelog
+# 9Router Monitor Pro Changelog
 
-Tất cả thay đổi đáng chú ý của extension được ghi tại đây.
+All notable changes to this project are documented in this file.
+
+## [0.1.0] - 2026-09-17
+
+### Added
+- Official rebrand to **9Router Monitor Pro** (Author: **Minhtalent-dev**).
+- **Multi-Account Aggregation**: Automatically computes total quota across all pinned accounts on status bar.
+- **Multi-Pin Support**: Pin multiple accounts and multiple AI models simultaneously.
+- **Toggle Provider Active Status**: Directly enable or disable provider accounts via 9Router API.
+- **Webview Dashboard Pro Max**: Compact grid layout, realtime search, dynamic provider filter chips, multi-criteria sorting, and model visibility toggling.
+- **Persistent Quick Menu**: Click status bar to open interactive menu with multi-select pinning and quick actions.
+- **Multi-Machine Connectivity**: Connect remotely via Cloudflare Tunnel with automatic Dashboard Password authentication.
+- **Zero-Config Local Discovery**: Automatically discovers local CLI credentials when running on the same machine.
+- **Modern Model Quotas**: Dynamic quota parsing for Gemini 3.8 Flash, Claude Sonnet, Antigravity, and Codex.
+
+### Fixed
+- Fixed Unicode progress bar rendering glitch on Windows, replaced with crisp geometric shapes.
+- Resolved HTTP 401 Unauthorized errors with modern 9Router server architecture.
+- Seamless automatic token renewal on session expiration.
 
 ## [0.0.1] - 2026-06-10
 
 ### Added
-- Hiển thị token usage trên status bar góc dưới phải (token còn lại + %).
-- Tooltip chi tiết với thanh tiến trình màu liền mạch.
-- Tự đổi màu cảnh báo khi token còn ít (vàng ≤15%, đỏ ≤5%).
-- Tự động làm mới theo chu kỳ (mặc định 60 giây).
-- Lưu API key an toàn bằng VSCode SecretStorage.
-- Cấu hình linh hoạt: `apiBaseUrl`, `apiPath`, `apiKeyHeader`, `apiKeyPrefix`.
-- Ánh xạ field JSON (`fieldMap`) hỗ trợ dot-path cho JSON lồng nhau.
-- Các trường mở rộng: plan, token input/output, requests, chi phí, model, tổ chức, reset_at.
+- Initial release with basic token usage on status bar.
+- Basic tooltip with progress indicators.
+- Auto-refresh mechanism and API key storage via SecretStorage.
 - `extraFields` cho phép hiển thị field tuỳ ý.
 - `statusBarFormat` để chọn cách hiển thị trên status bar.
