@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/minhtalent-dev/9router-monitor-pro/releases"><img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version 1.0.0" /></a>
+  <a href="https://github.com/minhtalent-dev/9router-monitor-pro/releases"><img src="https://img.shields.io/badge/version-1.0.1-blue.svg" alt="Version 1.0.1" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://code.visualstudio.com/"><img src="https://img.shields.io/badge/VS%20Code-%3E%3D%201.85.0-007ACC.svg" alt="VS Code Compatibility" /></a>
   <a href="https://github.com/minhtalent-dev/9router-monitor-pro"><img src="https://img.shields.io/badge/platform-VS%20Code%20%7C%20Antigravity%20%7C%20Cursor%20%7C%20Windsurf-orange.svg" alt="Supported IDEs" /></a>
@@ -99,17 +99,17 @@ You can switch display styles at any time via **Quick Menu -> Status Bar Display
 #### Method 1: Install via CLI (Recommended)
 ```powershell
 # For Antigravity
-antigravity --install-extension 9router-monitor-pro-1.0.0.vsix --force
+antigravity --install-extension 9router-monitor-pro-1.0.1.vsix --force
 
 # For Cursor
-cursor --install-extension 9router-monitor-pro-1.0.0.vsix --force
+cursor --install-extension 9router-monitor-pro-1.0.1.vsix --force
 
 # For VS Code
-code --install-extension 9router-monitor-pro-1.0.0.vsix --force
+code --install-extension 9router-monitor-pro-1.0.1.vsix --force
 ```
 
 #### Method 2: Install from VSIX in GUI
-1. Download `9router-monitor-pro-1.0.0.vsix` from [GitHub Releases](https://github.com/minhtalent-dev/9router-monitor-pro/releases).
+1. Download `9router-monitor-pro-1.0.1.vsix` from [GitHub Releases](https://github.com/minhtalent-dev/9router-monitor-pro/releases).
 2. In your IDE, open the Extensions view (`Ctrl+Shift+X`).
 3. Click the `...` menu (Views and More Actions) at the top right of the Extensions panel.
 4. Select **Install from VSIX...** and choose the downloaded file.

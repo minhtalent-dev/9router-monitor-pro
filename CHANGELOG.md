@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.1] - 2026-09-17
+
+### Added
+- **New 3D Icon Branding**: Upgraded official extension icon to modern 3D glowing `9R PRO` badge.
+- **Enhanced Webview Header**: Synchronized glowing 3D logo into Webview Dashboard header.
+- **Cleaned Command Palette**: Removed deprecated `Set API Key` command for streamlined user experience.
+
+### Fixed
+- **Status Bar Alert Accuracy**: Eliminated false warning alerts (yellow badge) when unpinned quotas or zero-quota models exist. Health alerts now evaluate strictly against pinned models.
+- **Accurate Quota Calculations**: Corrected remaining percentage calculations for inactive or zero-quota entries.
+
 ## [1.0.0] - 2026-09-17
 
 ### Added
