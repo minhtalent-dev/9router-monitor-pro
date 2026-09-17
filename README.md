@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/minhtalent-dev/9router-monitor-pro/releases"><img src="https://img.shields.io/badge/version-1.0.2-blue.svg" alt="Version 1.0.2" /></a>
+  <a href="https://github.com/minhtalent-dev/9router-monitor-pro/releases"><img src="https://img.shields.io/badge/version-1.0.3-blue.svg" alt="Version 1.0.3" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://code.visualstudio.com/"><img src="https://img.shields.io/badge/VS%20Code-%3E%3D%201.85.0-007ACC.svg" alt="VS Code Compatibility" /></a>
   <a href="https://github.com/minhtalent-dev/9router-monitor-pro"><img src="https://img.shields.io/badge/platform-VS%20Code%20%7C%20Antigravity%20%7C%20Cursor%20%7C%20Windsurf-orange.svg" alt="Supported IDEs" /></a>

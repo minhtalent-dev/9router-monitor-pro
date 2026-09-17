@@ -33,6 +33,7 @@ export function createDashboardTooltip(
       'aiTokenUsage.openQuickMenu',
       'aiTokenUsage.showDetails',
       'aiTokenUsage.setTooltipMode',
+      'aiTokenUsage.toggleTooltipMode',
       'aiTokenUsage.setDisplayMode',
       'aiTokenUsage.setConnection',
       'aiTokenUsage.refresh'
@@ -237,8 +238,14 @@ export function createDashboardTooltip(
     }
   }
 
+  const currentMode = cfg.tooltipDisplayMode ?? 'all';
+  const toggleLabel =
+    currentMode === 'summary'
+      ? 'Toggle: Show All Details'
+      : 'Toggle: Summary Only';
+
   md.appendMarkdown(
-    '---\n\n👉 [Open Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;│&nbsp; [Open Dashboard Webview](command:aiTokenUsage.showDetails) &nbsp;│&nbsp; [Tooltip Style](command:aiTokenUsage.setTooltipMode)\n'
+    `---\n\n👉 [Open Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;│&nbsp; [Open Dashboard Webview](command:aiTokenUsage.showDetails) &nbsp;│&nbsp; [${toggleLabel}](command:aiTokenUsage.toggleTooltipMode)\n`
   );
 
   return md;

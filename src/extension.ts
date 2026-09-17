@@ -12,7 +12,9 @@ import {
   setLastDashboard,
   setLastError,
   getLastDashboard,
-  getLastError
+  getLastError,
+  getActiveConfig,
+  setActiveConfig
 } from './services/stateManager';
 import { fetchDashboard } from './services/apiClient';
 import { initStatusBar, renderStatusBar } from './ui/statusBar';
@@ -21,7 +23,8 @@ import {
   setConnection,
   setRefreshInterval,
   setDisplayMode,
-  setTooltipMode
+  setTooltipMode,
+  toggleTooltipMode
 } from './ui/quickMenu';
 import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
 
@@ -62,6 +65,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiTokenUsage.setTooltipMode', () =>
       setTooltipMode(getConfig(), () => refresh(context))
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.toggleTooltipMode', () =>
+      toggleTooltipMode(getConfig(), () => refresh(context))
     )
   );
 
@@ -69,6 +75,16 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('aiTokenUsage.refreshIntervalSeconds')) {
         scheduleRefresh(context);
+      }
+      if (
+        e.affectsConfiguration('aiTokenUsage.statusDisplayMode') ||
+        e.affectsConfiguration('aiTokenUsage.tooltipDisplayMode')
+      ) {
+        // Pure visual display change: re-render immediately without redundant network fetch
+        const fresh = getConfig();
+        renderStatusBar(fresh);
+        syncDashboardWebview(context, fresh);
+        return;
       }
       if (e.affectsConfiguration('aiTokenUsage')) {
         void refresh(context);
@@ -89,8 +105,9 @@ export function deactivate(): void {
 }
 
 export function getConfig(): ExtensionConfig {
+  const active = getActiveConfig();
   const cfg = vscode.workspace.getConfiguration('aiTokenUsage');
-  return {
+  const fresh: ExtensionConfig = {
     baseUrl: cfg.get<string>('apiBaseUrl', 'http://localhost:20128'),
     providersPath: cfg.get<string>(
       'providersPath',
@@ -98,19 +115,22 @@ export function getConfig(): ExtensionConfig {
     ),
     usagePathTemplate: cfg.get<string>('usagePathTemplate', '/api/usage/{id}'),
     statusBarQuota: cfg.get<string>('statusBarQuota', 'session'),
-    statusDisplayMode: cfg.get<'compact' | 'detailed' | 'minimal'>(
-      'statusDisplayMode',
-      'compact'
-    ),
-    tooltipDisplayMode: cfg.get<'all' | 'summary' | 'accounts'>(
-      'tooltipDisplayMode',
-      'all'
-    ),
+    statusDisplayMode:
+      active?.statusDisplayMode ??
+      cfg.get<'compact' | 'detailed' | 'minimal'>(
+        'statusDisplayMode',
+        'compact'
+      ),
+    tooltipDisplayMode:
+      active?.tooltipDisplayMode ??
+      cfg.get<'all' | 'summary' | 'accounts'>('tooltipDisplayMode', 'all'),
     intervalSeconds: Math.max(
       10,
       cfg.get<number>('refreshIntervalSeconds', 60)
     )
   };
+  setActiveConfig(fresh);
+  return fresh;
 }
 
 export function scheduleRefresh(context: vscode.ExtensionContext): void {

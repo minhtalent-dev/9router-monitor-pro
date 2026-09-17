@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.3] - 2026-09-17
+
+### Added
+- **Direct 1-Click Tooltip Mode Toggle**: Added `[Toggle: Summary Only / Show All Details]` command link directly inside the status bar tooltip footer for zero-latency, 1-click toggling.
+- **In-Memory Config Cache & Zero-Latency Renders**: Synchronized config updates across all subsystems with instant 0ms status bar re-rendering, avoiding race conditions and redundant network calls on display style changes.
+
+### Fixed
+- **QuickPick Hover Focus Lost Bug**: Added delay buffer and `ignoreFocusOut: true` to prevent VS Code hover widget dismissal from inadvertently closing the QuickPick selection menu.
+
 ## [1.0.2] - 2026-09-17
 
 ### Added

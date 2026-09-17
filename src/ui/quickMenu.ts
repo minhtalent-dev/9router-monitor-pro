@@ -111,6 +111,8 @@ export async function setDisplayMode(
   cfg: ExtensionConfig,
   onRefresh: () => Promise<void>
 ): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 80));
+
   const currentMode = cfg.statusDisplayMode ?? 'compact';
 
   interface DisplayModePickItem extends vscode.QuickPickItem {
@@ -151,17 +153,18 @@ export async function setDisplayMode(
     return;
   }
 
+  cfg.statusDisplayMode = selected.mode;
+  renderStatusBar(cfg);
+
   const config = vscode.workspace.getConfiguration('aiTokenUsage');
   await config.update(
     'statusDisplayMode',
     selected.mode,
     vscode.ConfigurationTarget.Global
   );
-  cfg.statusDisplayMode = selected.mode;
   vscode.window.showInformationMessage(
     `[9Router Pro] Status Bar display style set to: ${selected.mode}`
   );
-  await onRefresh();
 }
 
 export async function setTooltipMode(
@@ -169,7 +172,7 @@ export async function setTooltipMode(
   onRefresh: () => Promise<void>
 ): Promise<void> {
   // Yield execution slightly so hover tooltip dismissal does not dismiss QuickPick
-  await new Promise((resolve) => setTimeout(resolve, 60));
+  await new Promise((resolve) => setTimeout(resolve, 80));
 
   const currentMode = cfg.tooltipDisplayMode ?? 'all';
 
@@ -214,17 +217,42 @@ export async function setTooltipMode(
     return;
   }
 
+  cfg.tooltipDisplayMode = selected.mode;
+  renderStatusBar(cfg);
+
   const config = vscode.workspace.getConfiguration('aiTokenUsage');
   await config.update(
     'tooltipDisplayMode',
     selected.mode,
     vscode.ConfigurationTarget.Global
   );
-  cfg.tooltipDisplayMode = selected.mode;
   vscode.window.showInformationMessage(
     `[9Router Pro] Tooltip detail level set to: ${selected.mode}`
   );
-  await onRefresh();
+}
+
+export async function toggleTooltipMode(
+  cfg: ExtensionConfig,
+  onRefresh: () => Promise<void>
+): Promise<void> {
+  const currentMode = cfg.tooltipDisplayMode ?? 'all';
+  const nextMode: 'all' | 'summary' =
+    currentMode === 'summary' ? 'all' : 'summary';
+
+  cfg.tooltipDisplayMode = nextMode;
+  renderStatusBar(cfg);
+
+  const config = vscode.workspace.getConfiguration('aiTokenUsage');
+  await config.update(
+    'tooltipDisplayMode',
+    nextMode,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.showInformationMessage(
+    `[9Router Pro] Tooltip mode: ${
+      nextMode === 'summary' ? 'Summary Only' : 'All Details'
+    }`
+  );
 }
 
 export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {

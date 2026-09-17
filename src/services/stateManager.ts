@@ -1,11 +1,20 @@
 import * as vscode from 'vscode';
-import { DashboardData } from '../types';
+import { DashboardData, ExtensionConfig } from '../types';
 
 let currentContext: vscode.ExtensionContext | undefined;
 let lastDashboard: DashboardData | undefined;
 let lastError: string | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 let detailsPanel: vscode.WebviewPanel | undefined;
+let activeConfig: ExtensionConfig | undefined;
+
+export function getActiveConfig(): ExtensionConfig | undefined {
+  return activeConfig;
+}
+
+export function setActiveConfig(cfg: ExtensionConfig | undefined): void {
+  activeConfig = cfg;
+}
 
 export function getCurrentContext(): vscode.ExtensionContext | undefined {
   return currentContext;
