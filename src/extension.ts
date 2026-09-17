@@ -58,6 +58,7 @@ interface ProviderUsage {
   connection: ProviderConnection;
   usage?: UsageData;
   error?: string;
+  warning?: string;
 }
 
 interface DashboardData {
@@ -73,6 +74,8 @@ interface ExtensionConfig {
   statusBarQuota: string;
   intervalSeconds: number;
 }
+
+const usageCache = new Map<string, UsageData>();
 
 let statusBarItem: vscode.StatusBarItem;
 let refreshTimer: NodeJS.Timeout | undefined;
@@ -536,6 +539,24 @@ async function refresh(context: vscode.ExtensionContext): Promise<void> {
   }
 }
 
+async function mapConcurrent<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+  const workerCount = Math.min(limit, items.length);
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (index < items.length) {
+      const i = index++;
+      results[i] = await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 async function fetchDashboard(
   cfg: ExtensionConfig,
   auth: AuthContext
@@ -546,19 +567,42 @@ async function fetchDashboard(
     (a, b) => a.priority - b.priority
   );
 
-  const items = await Promise.all(
-    connections.map(async (connection): Promise<ProviderUsage> => {
-      try {
-        const usagePath = buildUsagePath(cfg.usagePathTemplate, connection.id);
-        const usageJson = await fetchJson(buildUrl(cfg.baseUrl, usagePath), auth);
-        return { connection, usage: parseUsage(usageJson) };
-      } catch (err) {
+  const items = await mapConcurrent(
+    connections,
+    3,
+    async (connection): Promise<ProviderUsage> => {
+      const usagePath = buildUsagePath(cfg.usagePathTemplate, connection.id);
+      const targetUrl = buildUrl(cfg.baseUrl, usagePath);
+
+      let lastErr: Error | undefined;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const usageJson = await fetchJson(targetUrl, auth);
+          const parsed = parseUsage(usageJson);
+          usageCache.set(connection.id, parsed);
+          return { connection, usage: parsed };
+        } catch (err) {
+          lastErr = err instanceof Error ? err : new Error(String(err));
+          if (attempt === 1) {
+            await new Promise((r) => setTimeout(r, 600));
+          }
+        }
+      }
+
+      const cached = usageCache.get(connection.id);
+      if (cached) {
         return {
           connection,
-          error: err instanceof Error ? err.message : String(err)
+          usage: cached,
+          warning: 'Latest refresh timed out. Showing cached quota.'
         };
       }
-    })
+
+      return {
+        connection,
+        error: lastErr?.message ?? 'Request timed out.'
+      };
+    }
   );
 
   return {
@@ -649,8 +693,8 @@ function fetchJson(
       }
     );
 
-    req.setTimeout(15000, () => {
-      req.destroy(new Error('Request timed out (15s).'));
+    req.setTimeout(25000, () => {
+      req.destroy(new Error('Request timed out (25s).'));
     });
     req.on('error', (err) => reject(err));
     req.end();
@@ -1043,6 +1087,7 @@ function renderStatusBar(missingKey = false): void {
       let totalRemaining = 0;
       let hasUnlimited = false;
       let found = false;
+      let earliestReset: string | undefined;
 
       for (const item of displayItems) {
         const q = item.usage?.quotas?.[m];
@@ -1054,16 +1099,23 @@ function renderStatusBar(missingKey = false): void {
           if (q.unlimited) {
             hasUnlimited = true;
           }
+          if (q.resetAt) {
+            if (!earliestReset || new Date(q.resetAt).getTime() < new Date(earliestReset).getTime()) {
+              earliestReset = q.resetAt;
+            }
+          }
         }
       }
 
       if (found) {
         const shortName = quotaShortName(m);
+        const resetStr = formatResetCompact(earliestReset);
+        const resetTag = resetStr ? ` (${resetStr})` : '';
         if (hasUnlimited) {
-          aggParts.push(`${shortName} ∞`);
+          aggParts.push(`${shortName} ∞${resetTag}`);
         } else {
           aggParts.push(
-            `${shortName} ${formatCompact(totalRemaining)}/${formatCompact(totalMax)}`
+            `${shortName} ${formatCompact(totalRemaining)}/${formatCompact(totalMax)}${resetTag}`
           );
         }
       }
@@ -1151,14 +1203,15 @@ function createDashboardTooltip(
 
     // Aggregate Summary
     md.appendMarkdown('**Aggregate Summary**\n\n');
-    md.appendMarkdown('| Model | Remaining / Total | Used | Progress |\n');
-    md.appendMarkdown('|:---|:---:|:---:|:---:|\n');
+    md.appendMarkdown('| Model | Remaining / Total | Used | Reset | Progress |\n');
+    md.appendMarkdown('|:---|:---:|:---:|:---:|:---:|\n');
 
     for (const m of modelsToTrack) {
       let totalUsed = 0;
       let totalMax = 0;
       let totalRemaining = 0;
       let hasUnlimited = false;
+      let earliestReset: string | undefined;
 
       for (const t of targets) {
         const q = t.usage?.quotas?.[m];
@@ -1168,6 +1221,11 @@ function createDashboardTooltip(
           totalRemaining += q.remaining;
           if (q.unlimited) {
             hasUnlimited = true;
+          }
+          if (q.resetAt) {
+            if (!earliestReset || new Date(q.resetAt).getTime() < new Date(earliestReset).getTime()) {
+              earliestReset = q.resetAt;
+            }
           }
         }
       }
@@ -1187,9 +1245,10 @@ function createDashboardTooltip(
       const pctStr = hasUnlimited ? 'N/A' : `${usedPct.toFixed(1)}%`;
       const healthIcon = hasUnlimited ? '🟢' : getHealthIcon(remPct);
       const barStr = hasUnlimited ? '—' : `${healthIcon} ${renderTextBar(usedPct, 8)}`;
+      const resetCol = formatResetCompact(earliestReset) || '—';
 
       md.appendMarkdown(
-        `| **${quotaTitle(m)}** | ${remStr} / ${maxStr} | ${pctStr} | ${barStr} |\n`
+        `| **${quotaTitle(m)}** | ${remStr} / ${maxStr} | ${pctStr} | ${resetCol} | ${barStr} |\n`
       );
     }
     md.appendMarkdown('\n');
@@ -1255,8 +1314,8 @@ function createDashboardTooltip(
     }
 
     if (singleModels.length > 0) {
-      md.appendMarkdown('| Model | Remaining / Total | Used | Progress |\n');
-      md.appendMarkdown('|:---|:---:|:---:|:---:|\n');
+      md.appendMarkdown('| Model | Remaining / Total | Used | Reset | Progress |\n');
+      md.appendMarkdown('|:---|:---:|:---:|:---:|:---:|\n');
 
       for (const m of singleModels) {
         const q = quotas[m];
@@ -1269,9 +1328,10 @@ function createDashboardTooltip(
         const healthIcon = q.unlimited ? '🟢' : getHealthIcon(remPct);
         const barStr = q.unlimited ? '—' : `${healthIcon} ${renderTextBar(usedPct, 8)}`;
         const modelTitle = `${isPinnedModel ? '⭐ ' : ''}${quotaTitle(m)}`;
+        const resetCol = formatResetCompact(q.resetAt) || '—';
 
         md.appendMarkdown(
-          `| ${modelTitle} | **${rem}** / ${tot} | ${pctStr} | ${barStr} |\n`
+          `| ${modelTitle} | **${rem}** / ${tot} | ${pctStr} | ${resetCol} | ${barStr} |\n`
         );
       }
       md.appendMarkdown('\n');
@@ -1847,6 +1907,9 @@ function getWebviewContent(
       bodyHtml = '<div class="no-data">No usage data available</div>';
     } else {
       let alertsHtml = '';
+      if (item.warning) {
+        alertsHtml += `<div class="limit-alert review" style="margin-bottom:8px;">⏱️ ${escHtml(item.warning)}</div>`;
+      }
       if (usage.limitReached) {
         alertsHtml += '<div class="limit-alert limit">🔴 LIMIT REACHED!</div>';
       }
@@ -2807,13 +2870,32 @@ function quotaShortName(name: string): string {
   }
 }
 
+function formatResetCompact(iso?: string): string {
+  if (!iso) {
+    return '';
+  }
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) {
+    return '';
+  }
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (isToday) {
+    return timeStr;
+  }
+  return `${d.getMonth() + 1}/${d.getDate()} ${timeStr}`;
+}
+
 function formatQuotaForStatus(name: string, quota: QuotaData): string {
+  const resetStr = formatResetCompact(quota.resetAt);
+  const resetTag = resetStr ? ` (${resetStr})` : '';
   if (quota.unlimited) {
-    return `${quotaShortName(name)} ∞`;
+    return `${quotaShortName(name)} ∞${resetTag}`;
   }
   return `${quotaShortName(name)} ${formatCompact(quota.remaining)}/${formatCompact(
     quota.total
-  )}`;
+  )}${resetTag}`;
 }
 
 function getUsedPercent(quota: QuotaData): number {
