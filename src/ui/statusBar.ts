@@ -149,6 +149,8 @@ export function renderStatusBar(
     bg = new vscode.ThemeColor('statusBarItem.warningBackground');
   }
 
+  const mode = cfg.statusDisplayMode ?? 'compact';
+
   if (displayItems.length > 1) {
     const rawModels =
       pinnedModels.length > 0
@@ -188,22 +190,33 @@ export function renderStatusBar(
 
       if (found) {
         const shortName = quotaShortName(m);
-        const resetStr = formatResetCompact(earliestReset);
-        const resetTag = resetStr ? ` (${resetStr})` : '';
         if (hasUnlimited) {
+          const resetStr =
+            mode === 'detailed' ? formatResetCompact(earliestReset) : '';
+          const resetTag = resetStr ? ` (${resetStr})` : '';
           aggParts.push(`${shortName} ∞${resetTag}`);
-        } else {
+        } else if (mode === 'detailed') {
+          const resetStr = formatResetCompact(earliestReset);
+          const resetTag = resetStr ? ` (${resetStr})` : '';
           aggParts.push(
             `${shortName} ${formatCompact(totalRemaining)}/${formatCompact(
               totalMax
             )}${resetTag}`
           );
+        } else {
+          aggParts.push(`${shortName} ${formatCompact(totalRemaining)}`);
         }
       }
     }
 
     const modelsSummary = aggParts.length > 0 ? aggParts.join(' · ') : 'N/A';
-    statusBarItem.text = `${icon} ⭐ ${displayItems.length} acc · ${modelsSummary}`;
+    if (mode === 'minimal') {
+      statusBarItem.text = `${icon} ${modelsSummary}`;
+    } else if (mode === 'compact') {
+      statusBarItem.text = `${icon} ${displayItems.length}⭐ · ${modelsSummary}`;
+    } else {
+      statusBarItem.text = `${icon} ⭐ ${displayItems.length} acc · ${modelsSummary}`;
+    }
   } else {
     const item = displayItems[0];
     const { connection, usage } = item;
@@ -227,13 +240,17 @@ export function renderStatusBar(
     let modelsStr = 'N/A';
     if (usage?.quotas && targetModelKeys.length > 0) {
       modelsStr = targetModelKeys
-        .map((key) => formatQuotaForStatus(key, usage.quotas[key]))
+        .map((key) => formatQuotaForStatus(key, usage.quotas[key], mode))
         .join(' · ');
     }
 
-    statusBarItem.text = `${icon} ${
-      isAccountPinned ? '⭐ ' : ''
-    }${accName} · ${modelsStr}`;
+    if (mode === 'minimal') {
+      statusBarItem.text = `${icon} ${modelsStr}`;
+    } else {
+      statusBarItem.text = `${icon} ${
+        isAccountPinned ? '⭐ ' : ''
+      }${accName} · ${modelsStr}`;
+    }
   }
 
   statusBarItem.backgroundColor = bg;

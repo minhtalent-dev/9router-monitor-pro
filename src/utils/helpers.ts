@@ -85,15 +85,26 @@ export function quotaShortName(name: string): string {
   }
 }
 
-export function formatQuotaForStatus(name: string, quota: QuotaData): string {
-  const resetStr = formatResetCompact(quota.resetAt);
-  const resetTag = resetStr ? ` (${resetStr})` : '';
+export function formatQuotaForStatus(
+  name: string,
+  quota: QuotaData,
+  mode: 'compact' | 'detailed' | 'minimal' = 'detailed'
+): string {
+  const short = quotaShortName(name);
   if (quota.unlimited) {
-    return `${quotaShortName(name)} ∞${resetTag}`;
+    const resetStr =
+      mode === 'detailed' ? formatResetCompact(quota.resetAt) : '';
+    const resetTag = resetStr ? ` (${resetStr})` : '';
+    return `${short} ∞${resetTag}`;
   }
-  return `${quotaShortName(name)} ${formatCompact(quota.remaining)}/${formatCompact(
-    quota.total
-  )}${resetTag}`;
+  if (mode === 'detailed') {
+    const resetStr = formatResetCompact(quota.resetAt);
+    const resetTag = resetStr ? ` (${resetStr})` : '';
+    return `${short} ${formatCompact(quota.remaining)}/${formatCompact(
+      quota.total
+    )}${resetTag}`;
+  }
+  return `${short} ${formatCompact(quota.remaining)}`;
 }
 
 export function getUsedPercent(quota: QuotaData): number {

@@ -130,6 +130,61 @@ export async function setApiKey(
   await onRefresh();
 }
 
+export async function setDisplayMode(
+  cfg: ExtensionConfig,
+  onRefresh: () => Promise<void>
+): Promise<void> {
+  const currentMode = cfg.statusDisplayMode ?? 'compact';
+
+  interface DisplayModePickItem extends vscode.QuickPickItem {
+    mode: 'compact' | 'detailed' | 'minimal';
+  }
+
+  const items: DisplayModePickItem[] = [
+    {
+      label: '$(symbol-color) Compact (Default)',
+      description: 'Balanced: 10⭐ · G3.8 5.1K · Claude 1.2K',
+      detail: 'Hides /total and reset time for a clean, condensed status bar',
+      mode: 'compact',
+      picked: currentMode === 'compact'
+    },
+    {
+      label: '$(list-flat) Detailed',
+      description: 'Full: ⭐ 10 acc · G3.8 5.1K/10K (23/09 09:53)',
+      detail: 'Shows full remaining/total ratio and earliest reset timestamp',
+      mode: 'detailed',
+      picked: currentMode === 'detailed'
+    },
+    {
+      label: '$(dash) Minimal',
+      description: 'Ultra-compact: G3.8 5.1K · Claude 1.2K',
+      detail: 'Omits account prefix entirely, saving maximum status bar space',
+      mode: 'minimal',
+      picked: currentMode === 'minimal'
+    }
+  ];
+
+  const selected = await vscode.window.showQuickPick(items, {
+    title: `9Router Monitor Pro — Status Bar Display Style (Current: ${currentMode})`,
+    placeHolder: 'Select status bar display style'
+  });
+
+  if (!selected) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('aiTokenUsage');
+  await config.update(
+    'statusDisplayMode',
+    selected.mode,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.showInformationMessage(
+    `Status Bar display style set to: ${selected.mode}`
+  );
+  await onRefresh();
+}
+
 export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
   const currentInterval = cfg.intervalSeconds;
 
@@ -472,6 +527,13 @@ export async function openQuickMenu(
       action: 'setInterval'
     },
     {
+      label: `$(symbol-color) Status Bar Display Style (${cfg.statusDisplayMode ?? 'compact'})...`,
+      description: 'Compact / Detailed / Minimal',
+      detail:
+        'Switch between compact (balanced), full detailed, or ultra-minimal display format',
+      action: 'setDisplayMode'
+    },
+    {
       label: '$(gear) Setup Connection (URL & Password)',
       description: cfg.baseUrl,
       detail: 'Reconfigure Base URL, Password, or switch to Local CLI Token',
@@ -509,6 +571,9 @@ export async function openQuickMenu(
       break;
     case 'setInterval':
       await setRefreshInterval(cfg);
+      break;
+    case 'setDisplayMode':
+      await setDisplayMode(cfg, onRefresh);
       break;
     case 'setConnection':
       await setConnection(context, onRefresh);

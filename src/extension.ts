@@ -19,6 +19,7 @@ import {
   openQuickMenu,
   setConnection,
   setRefreshInterval,
+  setDisplayMode,
   setApiKey
 } from './ui/quickMenu';
 import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
@@ -52,6 +53,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiTokenUsage.setInterval', () =>
       setRefreshInterval(getConfig())
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.setDisplayMode', () =>
+      setDisplayMode(getConfig(), () => refresh(context))
     )
   );
 
@@ -88,6 +92,10 @@ export function getConfig(): ExtensionConfig {
     ),
     usagePathTemplate: cfg.get<string>('usagePathTemplate', '/api/usage/{id}'),
     statusBarQuota: cfg.get<string>('statusBarQuota', 'session'),
+    statusDisplayMode: cfg.get<'compact' | 'detailed' | 'minimal'>(
+      'statusDisplayMode',
+      'compact'
+    ),
     intervalSeconds: Math.max(
       10,
       cfg.get<number>('refreshIntervalSeconds', 60)

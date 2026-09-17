@@ -66,11 +66,21 @@
       {
         "command": "aiTokenUsage.setInterval",
         "title": "9Router Monitor Pro: Set Refresh Interval"
+      },
+      {
+        "command": "aiTokenUsage.setDisplayMode",
+        "title": "9Router Monitor Pro: Set Status Bar Display Style"
       }
     ],
     "configuration": {
       "title": "9Router Monitor Pro",
       "properties": {
+        "aiTokenUsage.statusDisplayMode": {
+          "type": "string",
+          "enum": ["compact", "detailed", "minimal"],
+          "default": "compact",
+          "description": "Status bar display style: compact (balanced), detailed (full ratio + reset times), minimal (ultra-compact numbers only)."
+        },
         "aiTokenUsage.apiBaseUrl": {
           "type": "string",
           "default": "http://localhost:20128",

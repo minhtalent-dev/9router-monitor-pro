@@ -53,6 +53,7 @@ export interface ExtensionConfig {
   usagePathTemplate: string;
   statusBarQuota: string;
   intervalSeconds: number;
+  statusDisplayMode: 'compact' | 'detailed' | 'minimal';
 }
 
 export interface AuthContext {
