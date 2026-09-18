@@ -28,12 +28,27 @@ export function setLastRecentLogs(logs: RequestLogItem[]): void {
   lastRecentLogs = logs;
 }
 
-export function getLogTooltipLimit(): number {
+export function getLogTooltipLimit(context?: vscode.ExtensionContext): number {
+  const ctx = context ?? currentContext;
+  if (ctx) {
+    const stored = ctx.globalState.get<number>('aiTokenUsage.logTooltipLimit');
+    if (typeof stored === 'number' && !Number.isNaN(stored)) {
+      logTooltipLimit = Math.max(1, Math.min(50, stored));
+    }
+  }
   return logTooltipLimit;
 }
 
-export function setLogTooltipLimit(limit: number): void {
-  logTooltipLimit = Math.max(1, Math.min(50, limit));
+export async function setLogTooltipLimit(
+  limit: number,
+  context?: vscode.ExtensionContext
+): Promise<void> {
+  const validLimit = Math.max(1, Math.min(50, limit));
+  logTooltipLimit = validLimit;
+  const ctx = context ?? currentContext;
+  if (ctx) {
+    await ctx.globalState.update('aiTokenUsage.logTooltipLimit', validLimit);
+  }
 }
 
 export function getActiveConfig(): ExtensionConfig | undefined {

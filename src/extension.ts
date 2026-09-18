@@ -112,12 +112,12 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand(
       'aiTokenUsage.setLogTooltipLimit',
-      (limitStr?: string | number) => {
+      async (limitStr?: string | number) => {
         const parsed =
           typeof limitStr === 'number'
             ? limitStr
             : parseInt(String(limitStr || ''), 10) || 10;
-        setLogTooltipLimit(parsed);
+        await setLogTooltipLimit(parsed, context);
         renderStatusBar(getActiveConfig() ?? getConfig());
       }
     ),
