@@ -4,7 +4,10 @@ import {
   getCurrentContext,
   getLastDashboard,
   getLastError,
+  getLastRecentLogs,
+  getLastUsageStats,
   getLogStatusBarItem,
+  getLogTooltipLimit,
   getPinnedAccountIds,
   getPinnedModels,
   getStatusBarItem,
@@ -20,7 +23,7 @@ import {
   quotaShortName,
   truncateName
 } from '../utils/helpers';
-import { createDashboardTooltip } from './tooltip';
+import { createDashboardTooltip, createLogStatusBarTooltip } from './tooltip';
 
 export function initStatusBar(
   context: vscode.ExtensionContext
@@ -58,6 +61,10 @@ export function renderStatusBar(
     } else {
       logItem.hide();
     }
+    const stats = getLastUsageStats();
+    const logs = getLastRecentLogs();
+    const limit = getLogTooltipLimit();
+    logItem.tooltip = createLogStatusBarTooltip(stats, logs, limit);
   }
 
   const statusBarItem = getStatusBarItem();

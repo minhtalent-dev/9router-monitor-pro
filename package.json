@@ -80,6 +80,14 @@
         "title": "9Router Monitor Pro: Open Live Console Log"
       },
       {
+        "command": "aiTokenUsage.openUsageAnalytics",
+        "title": "9Router Monitor Pro: Open Usage & Analytics"
+      },
+      {
+        "command": "aiTokenUsage.setLogTooltipLimit",
+        "title": "9Router Monitor Pro: Set Log Tooltip Limit"
+      },
+      {
         "command": "aiTokenUsage.toggleLogStatusBar",
         "title": "9Router Monitor Pro: Toggle Console Log Status Bar Item"
       },

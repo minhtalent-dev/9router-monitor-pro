@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
-import { DashboardData, ExtensionConfig, ProviderUsage } from '../types';
+import {
+  DashboardData,
+  ExtensionConfig,
+  ProviderUsage,
+  RequestLogItem,
+  UsageStats
+} from '../types';
 import {
   getCurrentContext,
   getLastError,
@@ -246,6 +252,113 @@ export function createDashboardTooltip(
 
   md.appendMarkdown(
     `---\n\n👉 [Open Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;│&nbsp; [Open Dashboard Webview](command:aiTokenUsage.showDetails) &nbsp;│&nbsp; [${toggleLabel}](command:aiTokenUsage.toggleTooltipMode)\n`
+  );
+
+  return md;
+}
+
+function formatLogTime(ts?: string): string {
+  if (!ts) {
+    return '—';
+  }
+  if (ts.includes('T')) {
+    const t = ts.split('T')[1];
+    return t ? t.slice(0, 8) : ts;
+  }
+  if (ts.includes(' ')) {
+    const parts = ts.split(' ');
+    return parts[1] ? parts[1].slice(0, 8) : parts[0];
+  }
+  return ts.length > 10 ? ts.slice(-8) : ts;
+}
+
+export function createLogStatusBarTooltip(
+  stats?: UsageStats,
+  recentLogs?: RequestLogItem[],
+  limit = 10
+): vscode.MarkdownString {
+  const md = new vscode.MarkdownString(undefined, true);
+  md.isTrusted = {
+    enabledCommands: [
+      'aiTokenUsage.openConsoleLog',
+      'aiTokenUsage.openUsageAnalytics',
+      'aiTokenUsage.setLogTooltipLimit',
+      'aiTokenUsage.refresh'
+    ]
+  };
+  md.supportHtml = true;
+
+  md.appendMarkdown('### 🖥️ 9Router Monitor Pro · Live System & Usage\n\n');
+
+  if (stats) {
+    md.appendMarkdown(
+      '| Total Requests | Prompt In | Cached Tokens | Completion Out | Est. Cost |\n'
+    );
+    md.appendMarkdown('|:---:|:---:|:---:|:---:|:---:|\n');
+    const reqStr = (stats.totalRequests ?? 0).toLocaleString();
+    const promptStr = formatCompact(stats.totalPromptTokens ?? 0);
+    const cachedStr = formatCompact(stats.totalCachedTokens ?? 0);
+    const compStr = formatCompact(stats.totalCompletionTokens ?? 0);
+    const costStr = `$${Number(stats.totalCost ?? 0).toFixed(4)}`;
+    md.appendMarkdown(
+      `| **${reqStr}** | **${promptStr}** | **${cachedStr}** | **${compStr}** | **${costStr}** |\n`
+    );
+  } else {
+    md.appendMarkdown('_Fetching usage metrics..._\n');
+  }
+
+  md.appendMarkdown('\n---\n\n');
+
+  const totalCount = recentLogs?.length ?? 0;
+  const effectiveLimit = Math.max(1, Math.min(50, limit));
+  const displayItems = (recentLogs ?? []).slice(0, effectiveLimit);
+  const displayCount = displayItems.length;
+
+  const opt10 =
+    effectiveLimit === 10
+      ? '**[10](command:aiTokenUsage.setLogTooltipLimit?%2210%22)**'
+      : '[10](command:aiTokenUsage.setLogTooltipLimit?%2210%22)';
+  const opt25 =
+    effectiveLimit === 25
+      ? '**[25](command:aiTokenUsage.setLogTooltipLimit?%2225%22)**'
+      : '[25](command:aiTokenUsage.setLogTooltipLimit?%2225%22)';
+  const opt50 =
+    effectiveLimit === 50
+      ? '**[50](command:aiTokenUsage.setLogTooltipLimit?%2250%22)**'
+      : '[50](command:aiTokenUsage.setLogTooltipLimit?%2250%22)';
+
+  md.appendMarkdown(
+    `#### 🕒 Recent Transactions (${displayCount} of ${totalCount}, max 50)\n\n`
+  );
+  md.appendMarkdown(`Show: ${opt10} &nbsp;│&nbsp; ${opt25} &nbsp;│&nbsp; ${opt50}\n\n`);
+
+  if (displayItems.length === 0) {
+    md.appendMarkdown('_No recent transactions found._\n');
+  } else {
+    md.appendMarkdown('| Time | Model | Provider | In / Out | Status | Account |\n');
+    md.appendMarkdown('|:---|:---|:---|:---:|:---:|:---|\n');
+    for (const item of displayItems) {
+      const timeStr = formatLogTime(item.timestamp);
+      const modelStr = truncateName(item.model || '—', 16);
+      const providerStr = truncateName(item.provider || '—', 10);
+      const inOutStr = `${formatCompact(item.inTokens ?? 0)} / ${formatCompact(
+        item.outTokens ?? 0
+      )}`;
+      const isOk =
+        (item.status || '').toLowerCase() === 'ok' ||
+        item.status === '200' ||
+        item.status === 'success';
+      const statusIcon = isOk ? '🟢 ok' : '🔴 fail';
+      const accountStr = truncateName(item.account || 'default', 12);
+
+      md.appendMarkdown(
+        `| ${timeStr} | ${modelStr} | ${providerStr} | ${inOutStr} | ${statusIcon} | ${accountStr} |\n`
+      );
+    }
+  }
+
+  md.appendMarkdown(
+    '\n---\n\n[🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;│&nbsp; [📈 Usage & Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;│&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n'
   );
 
   return md;

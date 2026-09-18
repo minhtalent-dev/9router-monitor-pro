@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DashboardData, ExtensionConfig } from '../types';
+import { DashboardData, ExtensionConfig, RequestLogItem, UsageStats } from '../types';
 
 let currentContext: vscode.ExtensionContext | undefined;
 let lastDashboard: DashboardData | undefined;
@@ -8,6 +8,33 @@ let statusBarItem: vscode.StatusBarItem | undefined;
 let logStatusBarItem: vscode.StatusBarItem | undefined;
 let detailsPanel: vscode.WebviewPanel | undefined;
 let activeConfig: ExtensionConfig | undefined;
+let lastUsageStats: UsageStats | undefined;
+let lastRecentLogs: RequestLogItem[] = [];
+let logTooltipLimit: number = 10;
+
+export function getLastUsageStats(): UsageStats | undefined {
+  return lastUsageStats;
+}
+
+export function setLastUsageStats(stats: UsageStats | undefined): void {
+  lastUsageStats = stats;
+}
+
+export function getLastRecentLogs(): RequestLogItem[] {
+  return lastRecentLogs;
+}
+
+export function setLastRecentLogs(logs: RequestLogItem[]): void {
+  lastRecentLogs = logs;
+}
+
+export function getLogTooltipLimit(): number {
+  return logTooltipLimit;
+}
+
+export function setLogTooltipLimit(limit: number): void {
+  logTooltipLimit = Math.max(1, Math.min(50, limit));
+}
 
 export function getActiveConfig(): ExtensionConfig | undefined {
   return activeConfig;

@@ -5,7 +5,8 @@ import {
   SECRET_SESSION_TOKEN,
   SECRET_API_KEY,
   getLocalCliToken,
-  loginDashboard
+  loginDashboard,
+  getAuthContext
 } from './services/authManager';
 import {
   setCurrentContext,
@@ -14,9 +15,15 @@ import {
   getLastDashboard,
   getLastError,
   getActiveConfig,
-  setActiveConfig
+  setActiveConfig,
+  getLastUsageStats,
+  setLastUsageStats,
+  getLastRecentLogs,
+  setLastRecentLogs,
+  getLogTooltipLimit,
+  setLogTooltipLimit
 } from './services/stateManager';
-import { fetchDashboard } from './services/apiClient';
+import { fetchDashboard, fetchRequestLogs, fetchUsageStats } from './services/apiClient';
 import { initStatusBar, renderStatusBar } from './ui/statusBar';
 import {
   openQuickMenu,
@@ -77,6 +84,25 @@ export function activate(context: vscode.ExtensionContext): void {
         (isManual?: boolean) => refresh(context, isManual),
         'console'
       )
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.openUsageAnalytics', () =>
+      showDetails(
+        context,
+        getActiveConfig() ?? getConfig(),
+        (isManual?: boolean) => refresh(context, isManual),
+        'analytics'
+      )
+    ),
+    vscode.commands.registerCommand(
+      'aiTokenUsage.setLogTooltipLimit',
+      (limitStr?: string | number) => {
+        const parsed =
+          typeof limitStr === 'number'
+            ? limitStr
+            : parseInt(String(limitStr || ''), 10) || 10;
+        setLogTooltipLimit(parsed);
+        renderStatusBar(getActiveConfig() ?? getConfig());
+      }
     ),
     vscode.commands.registerCommand('aiTokenUsage.toggleLogStatusBar', async () => {
       const cfg = vscode.workspace.getConfiguration('aiTokenUsage');
@@ -242,4 +268,26 @@ async function executeRefresh(context: vscode.ExtensionContext): Promise<void> {
 
   renderStatusBar(config);
   syncDashboardWebview(context, config);
+
+  // Background telemetry fetch for log status bar tooltip (non-blocking)
+  void (async () => {
+    try {
+      const authCtx = await getAuthContext(context, config);
+      if (authCtx) {
+        const [stats, logs] = await Promise.all([
+          fetchUsageStats(config, authCtx),
+          fetchRequestLogs(config, authCtx, 1, 50)
+        ]);
+        if (stats) {
+          setLastUsageStats(stats);
+        }
+        if (logs && logs.length > 0) {
+          setLastRecentLogs(logs);
+        }
+        renderStatusBar(config);
+      }
+    } catch {
+      // Background telemetry fetch ignored
+    }
+  })();
 }
