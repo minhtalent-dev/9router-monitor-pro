@@ -67,12 +67,12 @@ export function createDashboardTooltip(
 
   if (targets.length === 0) {
     md.appendMarkdown(
-      '### $(graph) 9Router Monitor Pro\n\nNo active provider connections found.'
+      '### 📊 9Router Monitor Pro · Multi-Account Quota Monitor\n\nNo active provider connections found.'
     );
     return md;
   }
 
-  md.appendMarkdown('### $(graph) 9Router Monitor Pro\n\n');
+  md.appendMarkdown('### 📊 9Router Monitor Pro · Multi-Account Quota Monitor\n\n');
   const lastError = getLastError();
   if (lastError) {
     md.appendMarkdown(`> $(warning) Error: ${lastError}\n\n`);
@@ -91,7 +91,7 @@ export function createDashboardTooltip(
 
     // Aggregate Summary
     if (showSummary) {
-      md.appendMarkdown('**Aggregate Summary**\n\n');
+      md.appendMarkdown('#### 📊 Aggregate Summary\n\n');
       md.appendMarkdown('| Model | Remaining / Total | Used | Reset | Progress |\n');
       md.appendMarkdown('|:---|:---:|:---:|:---:|:---:|\n');
 
@@ -142,7 +142,7 @@ export function createDashboardTooltip(
         const resetCol = formatResetCompact(earliestReset) || '—';
 
         md.appendMarkdown(
-          `| **${quotaTitle(m)}** | ${remStr} / ${maxStr} | ${pctStr} | ${resetCol} | ${barStr} |\n`
+          `| **${quotaTitle(m)}** | **${remStr}** / ${maxStr} | ${pctStr} | ${resetCol} | ${barStr} |\n`
         );
       }
       md.appendMarkdown('\n');
@@ -150,7 +150,7 @@ export function createDashboardTooltip(
 
     // Account Details
     if (showAccounts) {
-      md.appendMarkdown('**Account Details**\n\n');
+      md.appendMarkdown(`#### 👥 Account Details (${targets.length} Accounts)\n\n`);
       const modelHeaders = modelsToTrack.map((m) => quotaTitle(m));
       const headerCols = ['#', 'Account', ...modelHeaders, 'Status'];
       const alignCols = [
@@ -167,7 +167,7 @@ export function createDashboardTooltip(
         const isPinnedAcc = pinnedAccountIds.includes(conn.id);
         const accNum = `${isPinnedAcc ? '⭐' : ''}#${conn.priority}`;
         const accName = truncateName(displayName(conn), 12);
-        const statusIcon = conn.isActive ? '✓ Active' : '✗ Inactive';
+        const statusIcon = conn.isActive ? '🟢 Active' : '⚪ Inactive';
 
         const modelCols = modelsToTrack.map((m) => {
           const q = t.usage?.quotas?.[m];
@@ -196,7 +196,7 @@ export function createDashboardTooltip(
     const isPinnedAcc = pinnedAccountIds.includes(conn.id);
     const nameLabel = displayName(conn);
     const plan = target.usage?.plan ?? connectionPlan(conn) ?? 'Standard';
-    const statusText = conn.isActive ? '✓ Active' : '✗ Inactive';
+    const statusText = conn.isActive ? '🟢 Active' : '⚪ Inactive';
 
     md.appendMarkdown(
       `**${isPinnedAcc ? '⭐ ' : ''}${nameLabel}** (\`#${conn.priority}\`) · \`${conn.provider}\` · \`${statusText}\` · \`${plan}\`\n\n`
@@ -247,11 +247,13 @@ export function createDashboardTooltip(
   const currentMode = cfg.tooltipDisplayMode ?? 'all';
   const toggleLabel =
     currentMode === 'summary'
-      ? 'Toggle: Show All Details'
-      : 'Toggle: Summary Only';
+      ? 'Mode: Summary'
+      : currentMode === 'accounts'
+        ? 'Mode: Accounts'
+        : 'Mode: All';
 
   md.appendMarkdown(
-    `---\n\n👉 [Open Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;│&nbsp; [Open Dashboard Webview](command:aiTokenUsage.showDetails) &nbsp;│&nbsp; [${toggleLabel}](command:aiTokenUsage.toggleTooltipMode)\n`
+    `---\n\n[⚡ Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;│&nbsp; [🖥️ Dashboard](command:aiTokenUsage.showDetails) &nbsp;│&nbsp; [⚙️ ${toggleLabel}](command:aiTokenUsage.toggleTooltipMode) &nbsp;│&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
   );
 
   return md;
@@ -297,7 +299,7 @@ export function createLogStatusBarTooltip(
   if (tooltipMode !== 'logs') {
     if (stats) {
       md.appendMarkdown(
-        '| 🔢 Requests | 📥 Input | ⚡ Cached | 📤 Output | 💵 Est. Cost |\n'
+        '| 🔢 Requests | 📥 Input | ⚡ Cached | 📤 Output | 💵 Cost |\n'
       );
       md.appendMarkdown('| :---: | :---: | :---: | :---: | :---: |\n');
       const reqStr = (stats.totalRequests ?? 0).toLocaleString();
