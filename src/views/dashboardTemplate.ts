@@ -236,6 +236,7 @@ export function getWebviewContent(
     }"
            data-provider="${escHtml(connection.provider.toLowerCase())}"
            data-name="${escHtml(displayName(connection).toLowerCase())}"
+           data-connection-id="${escHtml(connection.id)}"
            data-priority="${connection.priority}">
         <div class="provider-header">
           <div class="provider-title">
@@ -1178,8 +1179,11 @@ export function getWebviewContent(
         <input type="text" id="txtLogFilter" placeholder="Filter logs (e.g. gpt-4, DONE, error)..." class="search-input" />
       </div>
       <span id="logCountBadge" class="badge">0 logs</span>
+      <span id="streamStatusBadge" class="badge" style="background:#238636;color:#fff;margin-left:8px;">● Connecting...</span>
     </div>
-    <div id="terminalContainer" class="terminal-box"></div>
+    <div id="terminalContainer" class="terminal-box">
+      <div id="terminalEmptyHint" class="terminal-placeholder" style="color:#8b949e;padding:12px;font-style:italic;">Connecting to 9Router Live Console stream... Waiting for incoming logs.</div>
+    </div>
   </div>
 
   <script>
@@ -1227,6 +1231,11 @@ export function getWebviewContent(
       }
 
       if (activeTab === 'console') {
+        const streamBadge = document.getElementById('streamStatusBadge');
+        if (streamBadge) {
+          streamBadge.textContent = '● Connecting...';
+          streamBadge.style.background = '#238636';
+        }
         vscode.postMessage({ command: 'startConsoleStream' });
         if (chkAutoScroll && chkAutoScroll.checked && !isPaused && terminalContainer) {
           terminalContainer.scrollTop = terminalContainer.scrollHeight;
@@ -1243,6 +1252,11 @@ export function getWebviewContent(
     });
 
     if (activeTab === 'console') {
+      const streamBadge = document.getElementById('streamStatusBadge');
+      if (streamBadge) {
+        streamBadge.textContent = '● Connecting...';
+        streamBadge.style.background = '#238636';
+      }
       vscode.postMessage({ command: 'startConsoleStream' });
     } else if (activeTab === 'analytics') {
       vscode.postMessage({ command: 'fetchAnalytics' });
@@ -1275,7 +1289,7 @@ export function getWebviewContent(
         return '<span class="log-refresh">' + escaped + '</span>';
       } else if (text.includes('[WARN]') || text.includes('[HEADROOM]')) {
         return '<span class="log-warn">' + escaped + '</span>';
-      } else if (text.includes('[ERROR]') || text.includes('ERR')) {
+      } else if (text.includes('[ERROR]') || text.includes('ERR') || text.includes('[STREAM ERROR]')) {
         return '<span class="log-error">' + escaped + '</span>';
       }
       return '<span class="log-default">' + escaped + '</span>';
@@ -1291,7 +1305,15 @@ export function getWebviewContent(
       if (logCountBadge) {
         logCountBadge.textContent = filtered.length + ' logs';
       }
-      terminalContainer.innerHTML = filtered.map(l => '<div class="terminal-line">' + formatLogLine(l) + '</div>').join('');
+      if (filtered.length === 0) {
+        if (!filter) {
+          terminalContainer.innerHTML = '<div id="terminalEmptyHint" class="terminal-placeholder" style="color:#8b949e;padding:12px;font-style:italic;">Connecting to 9Router Live Console stream... Waiting for incoming logs.</div>';
+        } else {
+          terminalContainer.innerHTML = '<div class="terminal-placeholder" style="color:#8b949e;padding:12px;font-style:italic;">No logs match current filter.</div>';
+        }
+      } else {
+        terminalContainer.innerHTML = filtered.map(l => '<div class="terminal-line">' + formatLogLine(l) + '</div>').join('');
+      }
       if (chkAutoScroll && chkAutoScroll.checked && !isPaused) {
         terminalContainer.scrollTop = terminalContainer.scrollHeight;
       }
@@ -1299,6 +1321,10 @@ export function getWebviewContent(
 
     function appendSingleLog(line) {
       if (!terminalContainer) return;
+      const emptyHint = terminalContainer.querySelector('.terminal-placeholder');
+      if (emptyHint) {
+        emptyHint.remove();
+      }
       const filter = (txtLogFilter ? txtLogFilter.value : '').trim().toLowerCase();
       const match = !filter || line.toLowerCase().includes(filter);
       if (match) {
@@ -1355,7 +1381,22 @@ export function getWebviewContent(
 
       if (message.command === 'switchTab' && message.tab) {
         switchTab(message.tab);
+      } else if (message.command === 'consoleLogError') {
+        const streamBadge = document.getElementById('streamStatusBadge');
+        if (streamBadge) {
+          streamBadge.textContent = '● Disconnected / Error';
+          streamBadge.style.background = '#da3633';
+        }
+        const errLine = '[STREAM ERROR] ' + (message.error || 'Connection failed');
+        allLogLines.push(errLine);
+        if (allLogLines.length > maxLogs) allLogLines.shift();
+        appendSingleLog(errLine);
       } else if (message.command === 'consoleLogEvent' && message.event) {
+        const streamBadge = document.getElementById('streamStatusBadge');
+        if (streamBadge) {
+          streamBadge.textContent = '● Live';
+          streamBadge.style.background = '#238636';
+        }
         const ev = message.event;
         if (ev.type === 'init') {
           allLogLines = (ev.logs || []).slice(-maxLogs);
@@ -1377,6 +1418,64 @@ export function getWebviewContent(
         } else if (ev.type === 'clear') {
           allLogLines = [];
           renderLogs();
+        }
+      } else if (message.command === 'syncData' && message.data) {
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+          refreshBtn.disabled = false;
+          refreshBtn.innerHTML = '⟳ Refresh';
+          refreshBtn.style.opacity = '1';
+          refreshBtn.style.cursor = 'pointer';
+        }
+        const data = message.data;
+        if (Array.isArray(data.items)) {
+          data.items.forEach(item => {
+            if (!item || !item.connection) return;
+            const sec = document.querySelector('.provider-section[data-connection-id="' + item.connection.id + '"]');
+            if (!sec || !item.usage || !item.usage.quotas) return;
+            const quotas = item.usage.quotas;
+            Object.entries(quotas).forEach(([name, q]) => {
+              const card = sec.querySelector('.model-card[data-model="' + name.toLowerCase() + '"]');
+              if (!card) return;
+              const used = Number(q.used) || 0;
+              const total = Number(q.total) || 0;
+              const remaining = q.remaining !== undefined && q.remaining !== null ? Number(q.remaining) : Math.max(0, total - used);
+              const usedPct = total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : 0;
+              const remPct = total > 0 ? Math.min(100, Math.max(0, (remaining / total) * 100)) : (q.unlimited ? 100 : 0);
+
+              card.dataset.used = String(used);
+              card.dataset.total = String(total);
+              card.dataset.pct = String(usedPct);
+              card.dataset.remaining = String(remaining);
+              if (q.resetAt) {
+                card.dataset.reset = String(new Date(q.resetAt).getTime() || 0);
+              }
+
+              let barColor = 'var(--green)';
+              if (usedPct >= 95) barColor = 'var(--red)';
+              else if (usedPct >= 85) barColor = 'var(--yellow)';
+
+              const progressFill = card.querySelector('.progress-fill');
+              if (progressFill) {
+                progressFill.style.width = usedPct + '%';
+                progressFill.style.background = barColor;
+              }
+              const statUsed = card.querySelector('.stat-used');
+              if (statUsed) {
+                statUsed.textContent = formatCompactNum(used) + ' / ' + (q.unlimited ? '∞' : formatCompactNum(total)) + ' used';
+              }
+              const statPct = card.querySelector('.stat-pct');
+              if (statPct) {
+                statPct.textContent = usedPct.toFixed(1) + '%';
+                statPct.style.color = barColor;
+              }
+              const statRem = card.querySelector('.stat-rem');
+              if (statRem) {
+                statRem.innerHTML = 'Remaining: <strong>' + (q.unlimited ? '∞' : formatCompactNum(remaining)) + '</strong> (' + remPct.toFixed(1) + '%)';
+              }
+            });
+          });
+          applyFiltersAndSort();
         }
       } else if (message.command === 'analyticsData') {
         if (btnRefreshAnalytics) {

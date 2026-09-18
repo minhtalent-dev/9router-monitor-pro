@@ -20,13 +20,15 @@ function buildUrl(baseUrl: string, pathOrUrl: string): URL {
   }
 }
 
-export function getLocalCliToken(): string | null {
+export function getAllLocalCliTokens(): string[] {
   const candidateDirs = [
-    process.env.APPDATA ? path.join(process.env.APPDATA, '9router') : null,
     'C:\\Users\\Administrator\\AppData\\Roaming\\9router',
+    process.env.APPDATA ? path.join(process.env.APPDATA, '9router') : null,
     path.join(os.homedir(), 'AppData', 'Roaming', '9router'),
     path.join(os.homedir(), '.9router')
   ].filter((dir): dir is string => Boolean(dir));
+
+  const candidates: { token: string; mtime: number }[] = [];
 
   for (const dir of candidateDirs) {
     try {
@@ -49,20 +51,35 @@ export function getLocalCliToken(): string | null {
         continue;
       }
 
+      const stat = fs.statSync(secretPath);
       const machineId = fs.readFileSync(machineIdPath, 'utf-8').trim();
       const cliSecret = fs.readFileSync(secretPath, 'utf-8').trim();
       if (machineId && cliSecret) {
-        return crypto
+        const token = crypto
           .createHash('sha256')
           .update(machineId + '9r-cli-auth' + cliSecret)
           .digest('hex')
           .substring(0, 16);
+        candidates.push({ token, mtime: stat.mtimeMs });
       }
     } catch {
       // Ignore file read errors and continue checking other directories
     }
   }
-  return null;
+
+  candidates.sort((a, b) => b.mtime - a.mtime);
+  const uniqueTokens: string[] = [];
+  for (const item of candidates) {
+    if (!uniqueTokens.includes(item.token)) {
+      uniqueTokens.push(item.token);
+    }
+  }
+  return uniqueTokens;
+}
+
+export function getLocalCliToken(): string | null {
+  const tokens = getAllLocalCliTokens();
+  return tokens.length > 0 ? tokens[0] : null;
 }
 
 export function loginDashboard(baseUrl: string, password: string): Promise<string> {

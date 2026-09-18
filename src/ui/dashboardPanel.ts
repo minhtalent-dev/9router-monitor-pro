@@ -41,7 +41,22 @@ export function syncDashboardWebview(
 ): void {
   const panel = getDetailsPanel();
   const dashboard = getLastDashboard();
-  if (panel && dashboard) {
+  if (!panel || !dashboard) {
+    return;
+  }
+  try {
+    const postPromise = panel.webview.postMessage({
+      command: 'syncData',
+      data: dashboard
+    });
+    if (postPromise && typeof postPromise.then === 'function') {
+      postPromise.then((delivered) => {
+        if (!delivered && panel && dashboard) {
+          panel.webview.html = getWebviewContent(dashboard, context, cfg);
+        }
+      });
+    }
+  } catch {
     panel.webview.html = getWebviewContent(dashboard, context, cfg);
   }
 }
@@ -292,6 +307,10 @@ export async function showDetails(
             },
             (err) => {
               console.error('Console stream error:', err);
+              detailsPanel?.webview.postMessage({
+                command: 'consoleLogError',
+                error: err.message
+              });
             }
           );
         }

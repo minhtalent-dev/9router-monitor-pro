@@ -20,7 +20,11 @@ import {
   toOptionalNumber,
   toOptionalString
 } from '../utils/helpers';
-import { loginDashboard, SECRET_SESSION_TOKEN } from './authManager';
+import {
+  getAllLocalCliTokens,
+  loginDashboard,
+  SECRET_SESSION_TOKEN
+} from './authManager';
 
 export const usageCache = new Map<string, UsageData>();
 
@@ -540,10 +544,16 @@ export function openConsoleLogStream(
   let isAborted = false;
   let reconnectTimer: NodeJS.Timeout | undefined;
   let activeReq: http.ClientRequest | undefined;
+  const candidateTokens = getAllLocalCliTokens();
+  let tokenIdx = 0;
 
   const connect = () => {
     if (isAborted) {
       return;
+    }
+
+    if (!auth.cliToken && candidateTokens.length > 0) {
+      auth.cliToken = candidateTokens[tokenIdx];
     }
 
     let target: URL;
@@ -573,45 +583,93 @@ export function openConsoleLogStream(
       headers['x-api-key'] = auth.legacyApiKey;
     }
 
+    if (activeReq) {
+      activeReq.destroy();
+      activeReq = undefined;
+    }
+
     const req = client.request(
       target,
       {
         method: 'GET',
         headers
       },
-      (res) => {
+      async (res) => {
+        if (res.statusCode === 401) {
+          res.resume();
+          if (auth.password) {
+            try {
+              const newToken = await loginDashboard(auth.baseUrl, auth.password);
+              auth.authToken = newToken;
+              await auth.context.secrets.store(SECRET_SESSION_TOKEN, newToken);
+              if (!isAborted) {
+                connect();
+              }
+              return;
+            } catch {
+              // Re-login failed, continue to fallback candidate tokens
+            }
+          }
+
+          if (tokenIdx + 1 < candidateTokens.length) {
+            tokenIdx++;
+            auth.cliToken = candidateTokens[tokenIdx];
+            if (!isAborted) {
+              connect();
+            }
+            return;
+          }
+
+          onError(
+            new Error(
+              'HTTP 401 Unauthorized: Vui lòng kiểm tra mật khẩu 9Router hoặc CLI token.'
+            )
+          );
+          scheduleReconnect();
+          return;
+        }
+
         if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+          res.resume();
           onError(new Error(`SSE stream HTTP ${res.statusCode}`));
           scheduleReconnect();
           return;
         }
 
+        if (res.statusCode === 200) {
+          onEvent({ type: 'init', logs: [] });
+        }
+
         let buffer = '';
         res.on('data', (chunk: Buffer) => {
-          buffer += chunk.toString('utf-8');
-          const lines = buffer.split(/\r?\n/);
-          buffer = lines.pop() ?? '';
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('data:')) {
-              const jsonStr = trimmed.slice(5).trim();
-              if (!jsonStr) {
-                continue;
-              }
-              try {
-                const parsed = JSON.parse(jsonStr) as ConsoleStreamMessage;
-                if (
-                  parsed &&
-                  typeof parsed === 'object' &&
-                  'type' in parsed &&
-                  ['init', 'line', 'lines', 'clear'].includes(parsed.type)
-                ) {
-                  onEvent(parsed);
+          try {
+            buffer += chunk.toString('utf-8');
+            const lines = buffer.split(/\r?\n/);
+            buffer = lines.pop() ?? '';
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith('data:')) {
+                const jsonStr = trimmed.slice(5).trim();
+                if (!jsonStr) {
+                  continue;
                 }
-              } catch {
-                // Ignore parse errors for partial chunks
+                try {
+                  const parsed = JSON.parse(jsonStr) as ConsoleStreamMessage;
+                  if (
+                    parsed &&
+                    typeof parsed === 'object' &&
+                    'type' in parsed &&
+                    ['init', 'line', 'lines', 'clear'].includes(parsed.type)
+                  ) {
+                    onEvent(parsed);
+                  }
+                } catch {
+                  // Ignore parse errors for partial chunks
+                }
               }
             }
+          } catch {
+            // Prevent crash on malformed chunks or encoding issues
           }
         });
 
