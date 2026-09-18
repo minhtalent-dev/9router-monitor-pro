@@ -292,12 +292,12 @@ export function createLogStatusBarTooltip(
   };
   md.supportHtml = true;
 
-  md.appendMarkdown('### 9Router Monitor Pro · Live System & Usage\n\n');
+  md.appendMarkdown('### 🖥️ 9Router Monitor Pro · Live System & Usage\n\n');
 
   if (tooltipMode !== 'logs') {
     if (stats) {
       md.appendMarkdown(
-        '| Requests | Input | Cached | Output | Cost |\n'
+        '| 🔢 Requests | 📥 Input | ⚡ Cached | 📤 Output | 💵 Est. Cost |\n'
       );
       md.appendMarkdown('| :---: | :---: | :---: | :---: | :---: |\n');
       const reqStr = (stats.totalRequests ?? 0).toLocaleString();
@@ -337,7 +337,7 @@ export function createLogStatusBarTooltip(
         : '[50](command:aiTokenUsage.setLogTooltipLimit?%2250%22)';
 
     md.appendMarkdown(
-      `#### Recent Transactions (${displayCount} of ${totalCount}, max 50)\n\n`
+      `#### 🕒 Recent Transactions (${displayCount} of ${totalCount}, max 50)\n\n`
     );
     md.appendMarkdown(`Show: ${opt10} &nbsp;│&nbsp; ${opt25} &nbsp;│&nbsp; ${opt50}\n\n`);
 
@@ -357,11 +357,11 @@ export function createLogStatusBarTooltip(
           (item.status || '').toLowerCase() === 'ok' ||
           item.status === '200' ||
           item.status === 'success';
-        const statusText = isOk ? 'OK' : 'FAIL';
+        const statusBadge = isOk ? '🟢 OK' : '🔴 FAIL';
         const accountStr = truncateName(item.account || 'default', 12);
 
         md.appendMarkdown(
-          `| ${timeStr} | ${modelStr} | ${providerStr} | ${inOutStr} | ${statusText} | ${accountStr} |\n`
+          `| ${timeStr} | ${modelStr} | ${providerStr} | ${inOutStr} | ${statusBadge} | &nbsp;${accountStr} |\n`
         );
       }
       md.appendMarkdown('\n');
@@ -376,7 +376,7 @@ export function createLogStatusBarTooltip(
         : 'Logs';
 
   md.appendMarkdown(
-    `---\n\n[Mode: ${modeLabel}](command:aiTokenUsage.toggleLogTooltipMode) &nbsp;│&nbsp; [Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;│&nbsp; [Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;│&nbsp; [Refresh](command:aiTokenUsage.refresh)\n`
+    `---\n\n[⚙️ Mode: ${modeLabel}](command:aiTokenUsage.toggleLogTooltipMode) &nbsp;│&nbsp; [🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;│&nbsp; [📈 Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;│&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
   );
 
   return md;
