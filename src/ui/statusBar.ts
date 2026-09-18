@@ -42,7 +42,7 @@ export function initStatusBar(
     99
   );
   logItem.command = 'aiTokenUsage.openConsoleLog';
-  logItem.text = '$(terminal) 9R Log';
+  logItem.text = '$(terminal) ';
   logItem.tooltip = 'Click to open 9Router Live Console Log';
   setLogStatusBarItem(logItem);
   context.subscriptions.push(logItem);
@@ -101,7 +101,7 @@ export function renderStatusBar(
         parts.push(pulse);
       }
       const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
-      logItem.text = `$(terminal) 9R Log${suffix}`;
+      logItem.text = `$(terminal) ${suffix}`;
     } else if (logStyle === 'detailed') {
       const parts: string[] = [];
       if (stats?.totalRequests) {
@@ -118,9 +118,9 @@ export function renderStatusBar(
         parts.push(pulse);
       }
       const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
-      logItem.text = `$(terminal) 9R Log${suffix}`;
+      logItem.text = `$(terminal) ${suffix}`;
     } else {
-      logItem.text = '$(terminal) 9R Log';
+      logItem.text = '$(terminal) ';
     }
 
     if (hasRecentError) {

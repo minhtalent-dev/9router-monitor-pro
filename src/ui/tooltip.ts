@@ -297,7 +297,7 @@ export function createLogStatusBarTooltip(
   if (tooltipMode !== 'logs') {
     if (stats) {
       md.appendMarkdown(
-        '| Requests | Prompt In | Cached | Completion Out | Est. Cost |\n'
+        '| Requests | Input | Cached | Output | Cost |\n'
       );
       md.appendMarkdown('| :---: | :---: | :---: | :---: | :---: |\n');
       const reqStr = (stats.totalRequests ?? 0).toLocaleString();
