@@ -5,7 +5,11 @@ import {
   getPinnedAccountIds,
   getPinnedModels,
   setPinnedAccountIds,
-  setPinnedModels
+  setPinnedModels,
+  setStatusDisplayMode,
+  setTooltipDisplayMode,
+  setLogStatusDisplayMode as setLogStatusModeState,
+  setLogTooltipDisplayMode as setLogTooltipModeState
 } from '../services/stateManager';
 import {
   getAuthContext,
@@ -155,14 +159,8 @@ export async function setDisplayMode(
   }
 
   cfg.statusDisplayMode = selected.mode;
+  await setStatusDisplayMode(selected.mode);
   renderStatusBar(cfg);
-
-  const config = vscode.workspace.getConfiguration('aiTokenUsage');
-  await config.update(
-    'statusDisplayMode',
-    selected.mode,
-    vscode.ConfigurationTarget.Global
-  );
   vscode.window.showInformationMessage(
     `[9Router Pro] Status Bar display style set to: ${selected.mode}`
   );
@@ -219,14 +217,8 @@ export async function setTooltipMode(
   }
 
   cfg.tooltipDisplayMode = selected.mode;
+  await setTooltipDisplayMode(selected.mode);
   renderStatusBar(cfg);
-
-  const config = vscode.workspace.getConfiguration('aiTokenUsage');
-  await config.update(
-    'tooltipDisplayMode',
-    selected.mode,
-    vscode.ConfigurationTarget.Global
-  );
   vscode.window.showInformationMessage(
     `[9Router Pro] Tooltip detail level set to: ${selected.mode}`
   );
@@ -241,14 +233,8 @@ export async function toggleTooltipMode(
     currentMode === 'summary' ? 'all' : 'summary';
 
   cfg.tooltipDisplayMode = nextMode;
+  await setTooltipDisplayMode(nextMode);
   renderStatusBar(cfg);
-
-  const config = vscode.workspace.getConfiguration('aiTokenUsage');
-  await config.update(
-    'tooltipDisplayMode',
-    nextMode,
-    vscode.ConfigurationTarget.Global
-  );
   vscode.window.showInformationMessage(
     `[9Router Pro] Tooltip mode: ${
       nextMode === 'summary' ? 'Summary Only' : 'All Details'
@@ -303,14 +289,9 @@ export async function setLogStatusDisplayMode(
   }
 
   cfg.logStatusDisplayMode = selected.mode;
+  await setLogStatusModeState(selected.mode);
   renderStatusBar(cfg);
 
-  const config = vscode.workspace.getConfiguration('aiTokenUsage');
-  await config.update(
-    'logStatusDisplayMode',
-    selected.mode,
-    vscode.ConfigurationTarget.Global
-  );
   vscode.window.showInformationMessage(
     `[9Router Pro] 9R Log Status Bar style set to: ${selected.mode}`
   );
@@ -363,14 +344,9 @@ export async function setLogTooltipMode(
   }
 
   cfg.logTooltipDisplayMode = selected.mode;
+  await setLogTooltipModeState(selected.mode);
   renderStatusBar(cfg);
 
-  const config = vscode.workspace.getConfiguration('aiTokenUsage');
-  await config.update(
-    'logTooltipDisplayMode',
-    selected.mode,
-    vscode.ConfigurationTarget.Global
-  );
   vscode.window.showInformationMessage(
     `[9Router Pro] 9R Log Tooltip detail level set to: ${selected.mode}`
   );
@@ -389,14 +365,9 @@ export async function toggleLogTooltipMode(
   const nextMode = cycleMap[currentMode] ?? 'all';
 
   cfg.logTooltipDisplayMode = nextMode;
+  await setLogTooltipModeState(nextMode);
   renderStatusBar(cfg);
 
-  const config = vscode.workspace.getConfiguration('aiTokenUsage');
-  await config.update(
-    'logTooltipDisplayMode',
-    nextMode,
-    vscode.ConfigurationTarget.Global
-  );
   vscode.window.showInformationMessage(
     `[9Router Pro] 9R Log Tooltip mode: ${nextMode}`
   );

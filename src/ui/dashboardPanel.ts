@@ -26,7 +26,10 @@ import {
   setPinnedAccountIds,
   setPinnedModels,
   setPreferredFilter,
-  setPreferredSort
+  setPreferredSort,
+  setStatusDisplayMode,
+  setTooltipDisplayMode,
+  getActiveConfig
 } from '../services/stateManager';
 import { displayName, quotaTitle } from '../utils/helpers';
 import { getWebviewContent } from '../views/dashboardTemplate';
@@ -39,27 +42,38 @@ let isStartingConsoleStream = false;
 
 export function syncDashboardWebview(
   context: vscode.ExtensionContext,
-  cfg: ExtensionConfig
+  cfg?: ExtensionConfig
 ): void {
   const panel = getDetailsPanel();
   const dashboard = getLastDashboard();
   if (!panel || !dashboard) {
     return;
   }
+  const effectiveConfig = cfg ?? getActiveConfig() ?? {
+    baseUrl: 'http://localhost:20128',
+    providersPath: '',
+    usagePathTemplate: '',
+    statusBarQuota: 'session',
+    statusDisplayMode: 'compact',
+    tooltipDisplayMode: 'all',
+    intervalSeconds: 60,
+    showLogStatusBar: true
+  };
   try {
     const postPromise = panel.webview.postMessage({
       command: 'syncData',
-      data: dashboard
+      data: dashboard,
+      config: effectiveConfig
     });
     if (postPromise && typeof postPromise.then === 'function') {
       postPromise.then((delivered) => {
         if (!delivered && panel && dashboard) {
-          panel.webview.html = getWebviewContent(dashboard, context, cfg);
+          panel.webview.html = getWebviewContent(dashboard, context, effectiveConfig);
         }
       });
     }
   } catch {
-    panel.webview.html = getWebviewContent(dashboard, context, cfg);
+    panel.webview.html = getWebviewContent(dashboard, context, effectiveConfig);
   }
 }
 
@@ -258,24 +272,14 @@ export async function showDetails(
       } else if (msg.command === 'updateFilter' && msg.filter) {
         await setPreferredFilter(context, msg.filter);
       } else if (msg.command === 'updateStatusStyle' && msg.statusMode) {
-        const config = vscode.workspace.getConfiguration('aiTokenUsage');
-        await config.update(
-          'statusDisplayMode',
-          msg.statusMode,
-          vscode.ConfigurationTarget.Global
-        );
+        await setStatusDisplayMode(msg.statusMode);
         cfg.statusDisplayMode = msg.statusMode;
         renderStatusBar(cfg);
         vscode.window.showInformationMessage(
           `[9Router Pro] Status Bar display style set to: ${msg.statusMode}`
         );
       } else if (msg.command === 'updateTooltipStyle' && msg.tooltipMode) {
-        const config = vscode.workspace.getConfiguration('aiTokenUsage');
-        await config.update(
-          'tooltipDisplayMode',
-          msg.tooltipMode,
-          vscode.ConfigurationTarget.Global
-        );
+        await setTooltipDisplayMode(msg.tooltipMode);
         cfg.tooltipDisplayMode = msg.tooltipMode;
         renderStatusBar(cfg);
         vscode.window.showInformationMessage(

@@ -182,51 +182,78 @@ export async function setHiddenModels(
   await context.globalState.update('aiTokenUsage.hiddenModels', hiddenModels);
 }
 
+export function getStatusDisplayMode(): 'compact' | 'detailed' | 'minimal' {
+  return vscode.workspace
+    .getConfiguration('aiTokenUsage')
+    .get<'compact' | 'detailed' | 'minimal'>('statusDisplayMode', 'compact');
+}
+
+export async function setStatusDisplayMode(
+  mode: 'compact' | 'detailed' | 'minimal'
+): Promise<void> {
+  if (activeConfig) {
+    activeConfig.statusDisplayMode = mode;
+  }
+  await vscode.workspace
+    .getConfiguration('aiTokenUsage')
+    .update('statusDisplayMode', mode, vscode.ConfigurationTarget.Global);
+}
+
+export function getTooltipDisplayMode(): 'all' | 'summary' | 'accounts' {
+  return vscode.workspace
+    .getConfiguration('aiTokenUsage')
+    .get<'all' | 'summary' | 'accounts'>('tooltipDisplayMode', 'all');
+}
+
+export async function setTooltipDisplayMode(
+  mode: 'all' | 'summary' | 'accounts'
+): Promise<void> {
+  if (activeConfig) {
+    activeConfig.tooltipDisplayMode = mode;
+  }
+  await vscode.workspace
+    .getConfiguration('aiTokenUsage')
+    .update('tooltipDisplayMode', mode, vscode.ConfigurationTarget.Global);
+}
+
 export function getLogTooltipDisplayMode(
   context?: vscode.ExtensionContext
 ): 'all' | 'summary' | 'logs' {
-  if (activeConfig?.logTooltipDisplayMode) {
-    return activeConfig.logTooltipDisplayMode;
-  }
-  const ctx = context ?? currentContext;
-  return (
-    ctx?.globalState.get<'all' | 'summary' | 'logs'>(
-      'aiTokenUsage.logTooltipDisplayMode'
-    ) ?? 'all'
-  );
+  return vscode.workspace
+    .getConfiguration('aiTokenUsage')
+    .get<'all' | 'summary' | 'logs'>('logTooltipDisplayMode', 'all');
 }
 
 export async function setLogTooltipDisplayMode(
-  context: vscode.ExtensionContext,
-  mode: 'all' | 'summary' | 'logs'
+  mode: 'all' | 'summary' | 'logs',
+  context?: vscode.ExtensionContext
 ): Promise<void> {
   if (activeConfig) {
     activeConfig.logTooltipDisplayMode = mode;
   }
-  await context.globalState.update('aiTokenUsage.logTooltipDisplayMode', mode);
+  await vscode.workspace
+    .getConfiguration('aiTokenUsage')
+    .update('logTooltipDisplayMode', mode, vscode.ConfigurationTarget.Global);
 }
 
 export function getLogStatusDisplayMode(
   context?: vscode.ExtensionContext
 ): 'minimal' | 'compact' | 'detailed' {
-  if (activeConfig?.logStatusDisplayMode) {
-    return activeConfig.logStatusDisplayMode;
-  }
-  const ctx = context ?? currentContext;
-  return (
-    ctx?.globalState.get<'minimal' | 'compact' | 'detailed'>(
-      'aiTokenUsage.logStatusDisplayMode'
-    ) ?? 'minimal'
-  );
+  return vscode.workspace
+    .getConfiguration('aiTokenUsage')
+    .get<'minimal' | 'compact' | 'detailed'>('logStatusDisplayMode', 'minimal');
 }
 
 export async function setLogStatusDisplayMode(
-  context: vscode.ExtensionContext,
-  mode: 'minimal' | 'compact' | 'detailed'
+  mode: 'minimal' | 'compact' | 'detailed',
+  context?: vscode.ExtensionContext
 ): Promise<void> {
   if (activeConfig) {
     activeConfig.logStatusDisplayMode = mode;
   }
-  await context.globalState.update('aiTokenUsage.logStatusDisplayMode', mode);
+  await vscode.workspace
+    .getConfiguration('aiTokenUsage')
+    .update('logStatusDisplayMode', mode, vscode.ConfigurationTarget.Global);
 }
+
 

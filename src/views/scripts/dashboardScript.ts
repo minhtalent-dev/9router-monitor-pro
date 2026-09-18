@@ -612,6 +612,20 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
           refreshBtn.style.opacity = '1';
           refreshBtn.style.cursor = 'pointer';
         }
+        if (message.config) {
+          const selStatus = document.getElementById('statusStyleSelect');
+          if (selStatus && message.config.statusDisplayMode) {
+            selStatus.value = message.config.statusDisplayMode;
+          }
+          const selTooltip = document.getElementById('tooltipStyleSelect');
+          if (selTooltip && message.config.tooltipDisplayMode) {
+            selTooltip.value = message.config.tooltipDisplayMode;
+          }
+          const selInterval = document.getElementById('refreshIntervalSelect');
+          if (selInterval && message.config.intervalSeconds) {
+            selInterval.value = String(message.config.intervalSeconds);
+          }
+        }
         const data = message.data;
         if (Array.isArray(data.items)) {
           data.items.forEach(item => {

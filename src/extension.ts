@@ -146,7 +146,8 @@ export function activate(context: vscode.ExtensionContext): void {
         e.affectsConfiguration('aiTokenUsage.statusDisplayMode') ||
         e.affectsConfiguration('aiTokenUsage.tooltipDisplayMode') ||
         e.affectsConfiguration('aiTokenUsage.logStatusDisplayMode') ||
-        e.affectsConfiguration('aiTokenUsage.logTooltipDisplayMode')
+        e.affectsConfiguration('aiTokenUsage.logTooltipDisplayMode') ||
+        e.affectsConfiguration('aiTokenUsage.showLogStatusBar')
       ) {
         // Pure visual display change: re-render immediately without redundant network fetch
         const fresh = getConfig();
@@ -178,7 +179,6 @@ export function deactivate(): void {
 }
 
 export function getConfig(): ExtensionConfig {
-  const active = getActiveConfig();
   const cfg = vscode.workspace.getConfiguration('aiTokenUsage');
   const fresh: ExtensionConfig = {
     baseUrl: cfg.get<string>('apiBaseUrl', 'http://localhost:20128'),
@@ -188,15 +188,14 @@ export function getConfig(): ExtensionConfig {
     ),
     usagePathTemplate: cfg.get<string>('usagePathTemplate', '/api/usage/{id}'),
     statusBarQuota: cfg.get<string>('statusBarQuota', 'session'),
-    statusDisplayMode:
-      active?.statusDisplayMode ??
-      cfg.get<'compact' | 'detailed' | 'minimal'>(
-        'statusDisplayMode',
-        'compact'
-      ),
-    tooltipDisplayMode:
-      active?.tooltipDisplayMode ??
-      cfg.get<'all' | 'summary' | 'accounts'>('tooltipDisplayMode', 'all'),
+    statusDisplayMode: cfg.get<'compact' | 'detailed' | 'minimal'>(
+      'statusDisplayMode',
+      'compact'
+    ),
+    tooltipDisplayMode: cfg.get<'all' | 'summary' | 'accounts'>(
+      'tooltipDisplayMode',
+      'all'
+    ),
     intervalSeconds: Math.max(
       5,
       cfg.get<number>('refreshIntervalSeconds', 60)
@@ -206,16 +205,19 @@ export function getConfig(): ExtensionConfig {
       cfg.get<number>('logStatusBarRefreshIntervalSeconds', 10)
     ),
     showLogStatusBar: cfg.get<boolean>('showLogStatusBar', true),
-    logTooltipDisplayMode:
-      active?.logTooltipDisplayMode ??
-      cfg.get<'all' | 'summary' | 'logs'>('logTooltipDisplayMode', 'all'),
-    logStatusDisplayMode:
-      active?.logStatusDisplayMode ??
-      cfg.get<'minimal' | 'compact' | 'detailed'>('logStatusDisplayMode', 'minimal')
+    logTooltipDisplayMode: cfg.get<'all' | 'summary' | 'logs'>(
+      'logTooltipDisplayMode',
+      'all'
+    ),
+    logStatusDisplayMode: cfg.get<'minimal' | 'compact' | 'detailed'>(
+      'logStatusDisplayMode',
+      'minimal'
+    )
   };
   setActiveConfig(fresh);
   return fresh;
 }
+
 
 export async function refreshLogStatusBar(context: vscode.ExtensionContext): Promise<void> {
   const config = getActiveConfig() ?? getConfig();
