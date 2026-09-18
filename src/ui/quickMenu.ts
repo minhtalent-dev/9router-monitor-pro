@@ -261,8 +261,20 @@ export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
 
   const items: IntervalPickItem[] = [
     {
+      label: '5 seconds (Ultra Fast)',
+      description: '5s - Ultra high frequency',
+      seconds: 5,
+      picked: currentInterval === 5
+    },
+    {
+      label: '10 seconds (Fast)',
+      description: '10s - High frequency',
+      seconds: 10,
+      picked: currentInterval === 10
+    },
+    {
       label: '15 seconds',
-      description: '15s - High frequency',
+      description: '15s',
       seconds: 15,
       picked: currentInterval === 15
     },
@@ -292,7 +304,7 @@ export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
     },
     {
       label: 'Custom...',
-      description: 'Custom interval in seconds (>= 10s)',
+      description: 'Custom interval in seconds (>= 5s)',
       isCustom: true
     }
   ];
@@ -312,13 +324,13 @@ export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
   if (selected.isCustom) {
     const input = await vscode.window.showInputBox({
       title: '9Router Monitor Pro — Custom Refresh Interval',
-      prompt: 'Enter refresh interval in seconds (minimum 10 seconds)',
+      prompt: 'Enter refresh interval in seconds (minimum 5 seconds)',
       value: String(currentInterval),
       ignoreFocusOut: true,
       validateInput: (val) => {
         const num = Number(val);
-        if (!Number.isInteger(num) || num < 10) {
-          return 'Value must be an integer >= 10 seconds.';
+        if (!Number.isInteger(num) || num < 5) {
+          return 'Value must be an integer >= 5 seconds.';
         }
         return null;
       }
@@ -343,6 +355,103 @@ export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
     cfg.intervalSeconds = seconds;
     vscode.window.showInformationMessage(
       `[9Router Pro] Auto-refresh interval set to ${seconds} seconds.`
+    );
+  }
+}
+
+export async function setLogRefreshInterval(cfg: ExtensionConfig): Promise<void> {
+  const currentInterval = cfg.logStatusBarRefreshIntervalSeconds ?? 10;
+
+  const items: IntervalPickItem[] = [
+    {
+      label: '3 seconds (Ultra Fast)',
+      description: '3s - Near real-time log polling',
+      seconds: 3,
+      picked: currentInterval === 3
+    },
+    {
+      label: '5 seconds (Fast)',
+      description: '5s - High frequency log polling',
+      seconds: 5,
+      picked: currentInterval === 5
+    },
+    {
+      label: '10 seconds (Default)',
+      description: '10s - Recommended balance',
+      seconds: 10,
+      picked: currentInterval === 10
+    },
+    {
+      label: '15 seconds',
+      description: '15s',
+      seconds: 15,
+      picked: currentInterval === 15
+    },
+    {
+      label: '30 seconds',
+      description: '30s',
+      seconds: 30,
+      picked: currentInterval === 30
+    },
+    {
+      label: '60 seconds',
+      description: '60s',
+      seconds: 60,
+      picked: currentInterval === 60
+    },
+    {
+      label: 'Custom...',
+      description: 'Custom interval in seconds (>= 3s)',
+      isCustom: true
+    }
+  ];
+
+  const selected = await vscode.window.showQuickPick(items, {
+    title: `9Router Monitor Pro — 9R Log Auto-Refresh Interval (Current: ${currentInterval}s)`,
+    placeHolder: 'Select 9R Log refresh interval',
+    ignoreFocusOut: true
+  });
+
+  if (!selected) {
+    return;
+  }
+
+  let seconds: number | undefined;
+
+  if (selected.isCustom) {
+    const input = await vscode.window.showInputBox({
+      title: '9Router Monitor Pro — Custom 9R Log Refresh Interval',
+      prompt: 'Enter refresh interval in seconds (minimum 3 seconds)',
+      value: String(currentInterval),
+      ignoreFocusOut: true,
+      validateInput: (val) => {
+        const num = Number(val);
+        if (!Number.isInteger(num) || num < 3) {
+          return 'Value must be an integer >= 3 seconds.';
+        }
+        return null;
+      }
+    });
+
+    if (input === undefined) {
+      return;
+    }
+
+    seconds = parseInt(input.trim(), 10);
+  } else {
+    seconds = selected.seconds;
+  }
+
+  if (seconds !== undefined && !Number.isNaN(seconds)) {
+    const config = vscode.workspace.getConfiguration('aiTokenUsage');
+    await config.update(
+      'logStatusBarRefreshIntervalSeconds',
+      seconds,
+      vscode.ConfigurationTarget.Global
+    );
+    cfg.logStatusBarRefreshIntervalSeconds = seconds;
+    vscode.window.showInformationMessage(
+      `[9Router Pro] 9R Log auto-refresh interval set to ${seconds} seconds.`
     );
   }
 }
@@ -620,8 +729,14 @@ export async function openQuickMenu(
     {
       label: `$(clock) Set Refresh Interval (${cfg.intervalSeconds}s)...`,
       description:
-        'Configure auto-refresh frequency (15s, 30s, 60s, custom)',
+        'Configure auto-refresh frequency (5s, 10s, 15s, 30s, 60s, custom)',
       action: 'setInterval'
+    },
+    {
+      label: `$(clock) Set 9R Log Refresh Interval (${cfg.logStatusBarRefreshIntervalSeconds ?? 10}s)...`,
+      description:
+        'Configure 9R Log auto-refresh frequency (3s, 5s, 10s, 15s, 30s, 60s, custom)',
+      action: 'setLogRefreshInterval'
     },
     {
       label: `$(symbol-color) Status Bar Display Style (${cfg.statusDisplayMode ?? 'compact'})...`,
@@ -696,6 +811,9 @@ export async function openQuickMenu(
       break;
     case 'setInterval':
       await setRefreshInterval(cfg);
+      break;
+    case 'setLogRefreshInterval':
+      await setLogRefreshInterval(cfg);
       break;
     case 'setDisplayMode':
       await setDisplayMode(cfg, onRefresh);

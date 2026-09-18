@@ -92,6 +92,10 @@
         "title": "9Router Monitor Pro: Toggle Console Log Status Bar Item"
       },
       {
+        "command": "aiTokenUsage.setLogRefreshInterval",
+        "title": "9Router Monitor Pro: Set 9R Log Refresh Interval"
+      },
+      {
         "command": "aiTokenUsage.showDebugLogs",
         "title": "9Router Monitor Pro: Show Debug Logs"
       }
@@ -146,8 +150,14 @@
         "aiTokenUsage.refreshIntervalSeconds": {
           "type": "number",
           "default": 60,
-          "minimum": 10,
+          "minimum": 5,
           "description": "Interval (in seconds) to automatically refresh usage statistics."
+        },
+        "aiTokenUsage.logStatusBarRefreshIntervalSeconds": {
+          "type": "number",
+          "default": 10,
+          "minimum": 3,
+          "description": "Interval (in seconds) to automatically refresh 9R Log Status Bar metrics, transaction history, and hover tooltip (minimum: 3s)."
         },
         "aiTokenUsage.apiKeyHeader": {
           "type": "string",

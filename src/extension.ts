@@ -29,6 +29,7 @@ import {
   openQuickMenu,
   setConnection,
   setRefreshInterval,
+  setLogRefreshInterval,
   setDisplayMode,
   setTooltipMode,
   toggleTooltipMode
@@ -37,6 +38,7 @@ import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
 import { getOutputChannel } from './utils/logger';
 
 let refreshTimer: NodeJS.Timeout | undefined;
+let logRefreshTimer: NodeJS.Timeout | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   setCurrentContext(context);
@@ -67,6 +69,9 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiTokenUsage.setInterval', () =>
       setRefreshInterval(getConfig())
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.setLogRefreshInterval', () =>
+      setLogRefreshInterval(getConfig())
     ),
     vscode.commands.registerCommand('aiTokenUsage.setDisplayMode', () =>
       setDisplayMode(getConfig(), () => refresh(context))
@@ -122,6 +127,9 @@ export function activate(context: vscode.ExtensionContext): void {
       if (e.affectsConfiguration('aiTokenUsage.refreshIntervalSeconds')) {
         scheduleRefresh(context);
       }
+      if (e.affectsConfiguration('aiTokenUsage.logStatusBarRefreshIntervalSeconds')) {
+        scheduleLogStatusBarRefresh(context);
+      }
       if (
         e.affectsConfiguration('aiTokenUsage.statusDisplayMode') ||
         e.affectsConfiguration('aiTokenUsage.tooltipDisplayMode')
@@ -141,12 +149,17 @@ export function activate(context: vscode.ExtensionContext): void {
   renderStatusBar(getConfig());
   void refresh(context);
   scheduleRefresh(context);
+  scheduleLogStatusBarRefresh(context);
 }
 
 export function deactivate(): void {
   if (refreshTimer) {
     clearInterval(refreshTimer);
     refreshTimer = undefined;
+  }
+  if (logRefreshTimer) {
+    clearInterval(logRefreshTimer);
+    logRefreshTimer = undefined;
   }
 }
 
@@ -171,13 +184,48 @@ export function getConfig(): ExtensionConfig {
       active?.tooltipDisplayMode ??
       cfg.get<'all' | 'summary' | 'accounts'>('tooltipDisplayMode', 'all'),
     intervalSeconds: Math.max(
-      10,
+      5,
       cfg.get<number>('refreshIntervalSeconds', 60)
+    ),
+    logStatusBarRefreshIntervalSeconds: Math.max(
+      3,
+      cfg.get<number>('logStatusBarRefreshIntervalSeconds', 10)
     ),
     showLogStatusBar: cfg.get<boolean>('showLogStatusBar', true)
   };
   setActiveConfig(fresh);
   return fresh;
+}
+
+export async function refreshLogStatusBar(context: vscode.ExtensionContext): Promise<void> {
+  const config = getActiveConfig() ?? getConfig();
+  if (config.showLogStatusBar === false) return;
+  try {
+    const auth = await getAuthContext(context, config);
+    if (auth) {
+      const [stats, logs] = await Promise.all([
+        fetchUsageStats(config, auth),
+        fetchRequestLogs(config, auth, 1, 50)
+      ]);
+      if (stats) setLastUsageStats(stats);
+      if (logs && logs.length > 0) setLastRecentLogs(logs);
+      renderStatusBar(config);
+    }
+  } catch {
+    // Non-blocking background log telemetry refresh
+  }
+}
+
+export function scheduleLogStatusBarRefresh(context: vscode.ExtensionContext): void {
+  if (logRefreshTimer) {
+    clearInterval(logRefreshTimer);
+    logRefreshTimer = undefined;
+  }
+  const config = getConfig();
+  const sec = config.logStatusBarRefreshIntervalSeconds || 10;
+  logRefreshTimer = setInterval(() => {
+    void refreshLogStatusBar(context);
+  }, sec * 1000);
 }
 
 export function scheduleRefresh(context: vscode.ExtensionContext): void {
@@ -225,6 +273,10 @@ export async function refresh(
 async function executeRefresh(context: vscode.ExtensionContext): Promise<void> {
   setCurrentContext(context);
   const config = getConfig();
+
+  // Run log status bar refresh in parallel immediately
+  void refreshLogStatusBar(context);
+
   const password = await context.secrets.get(SECRET_PASSWORD);
   let sessionToken = await context.secrets.get(SECRET_SESSION_TOKEN);
   const legacyApiKey = await context.secrets.get(SECRET_API_KEY);
@@ -268,26 +320,4 @@ async function executeRefresh(context: vscode.ExtensionContext): Promise<void> {
 
   renderStatusBar(config);
   syncDashboardWebview(context, config);
-
-  // Background telemetry fetch for log status bar tooltip (non-blocking)
-  void (async () => {
-    try {
-      const authCtx = await getAuthContext(context, config);
-      if (authCtx) {
-        const [stats, logs] = await Promise.all([
-          fetchUsageStats(config, authCtx),
-          fetchRequestLogs(config, authCtx, 1, 50)
-        ]);
-        if (stats) {
-          setLastUsageStats(stats);
-        }
-        if (logs && logs.length > 0) {
-          setLastRecentLogs(logs);
-        }
-        renderStatusBar(config);
-      }
-    } catch {
-      // Background telemetry fetch ignored
-    }
-  })();
 }

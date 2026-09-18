@@ -83,6 +83,7 @@ export interface ExtensionConfig {
   statusDisplayMode: 'compact' | 'detailed' | 'minimal';
   tooltipDisplayMode: 'all' | 'summary' | 'accounts';
   showLogStatusBar: boolean;
+  logStatusBarRefreshIntervalSeconds?: number;
 }
 
 export interface AuthContext {
