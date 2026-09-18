@@ -5,7 +5,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/minhtalent-dev/9router-monitor-pro/releases"><img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version 1.1.0" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=minhtalent-dev.9router-monitor-pro"><img src="https://img.shields.io/visual-studio-marketplace/v/minhtalent-dev.9router-monitor-pro?label=VS%20Code%20Marketplace&logo=visual-studio-code" alt="VS Code Marketplace Version" /></a>
+  <a href="https://marketplace.visualstudio.com/items?itemName=minhtalent-dev.9router-monitor-pro"><img src="https://img.shields.io/visual-studio-marketplace/d/minhtalent-dev.9router-monitor-pro?logo=visual-studio-code" alt="VS Code Downloads" /></a>
+  <a href="https://open-vsx.org/extension/minhtalent-dev/9router-monitor-pro"><img src="https://img.shields.io/open-vsx/v/minhtalent-dev/9router-monitor-pro?label=Open%20VSX&logo=eclipseche" alt="Open VSX Version" /></a>
+  <a href="https://open-vsx.org/extension/minhtalent-dev/9router-monitor-pro"><img src="https://img.shields.io/open-vsx/dt/minhtalent-dev/9router-monitor-pro" alt="Open VSX Downloads" /></a>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://code.visualstudio.com/"><img src="https://img.shields.io/badge/VS%20Code-%3E%3D%201.85.0-007ACC.svg" alt="VS Code Compatibility" /></a>
   <a href="https://github.com/minhtalent-dev/9router-monitor-pro"><img src="https://img.shields.io/badge/platform-VS%20Code%20%7C%20Antigravity%20%7C%20Cursor%20%7C%20Windsurf-orange.svg" alt="Supported IDEs" /></a>
@@ -141,25 +147,54 @@ Customize the visual density of both the **Main Quota Bar** and the **9R Log Bar
 
 ## 📦 Installation Guide
 
-### For Antigravity, Cursor, Windsurf, & VSCodium
+### Option 1 · Official Marketplaces (Recommended)
 
-#### Method 1: Install via CLI (Recommended)
-```powershell
-# For Antigravity
-antigravity --install-extension 9router-monitor-pro-1.1.0.vsix --force
+#### Visual Studio Code
+- **Web**: Install with one click from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=minhtalent-dev.9router-monitor-pro).
+- **In-App**: Press `Ctrl+Shift+X`, search for `9Router Monitor Pro`, and click **Install**.
+- **Quick Open**: Press `Ctrl+P` and paste:
+  ```text
+  ext install minhtalent-dev.9router-monitor-pro
+  ```
 
-# For Cursor
-cursor --install-extension 9router-monitor-pro-1.1.0.vsix --force
+#### Cursor, Windsurf, VSCodium, & Antigravity
+- **Web**: Available directly on the [Open VSX Registry](https://open-vsx.org/extension/minhtalent-dev/9router-monitor-pro).
+- **In-App**: Open the Extensions panel (`Ctrl+Shift+X`), search for `9Router Monitor Pro`, and click **Install**.
 
-# For VS Code
-code --install-extension 9router-monitor-pro-1.1.0.vsix --force
+---
+
+### Option 2 · Command Line Interface (CLI)
+
+Run the command for your preferred editor:
+
+```bash
+# Visual Studio Code
+code --install-extension minhtalent-dev.9router-monitor-pro
+
+# Cursor
+cursor --install-extension minhtalent-dev.9router-monitor-pro
+
+# Windsurf
+windsurf --install-extension minhtalent-dev.9router-monitor-pro
+
+# VSCodium
+codium --install-extension minhtalent-dev.9router-monitor-pro
+
+# Antigravity
+antigravity --install-extension minhtalent-dev.9router-monitor-pro
 ```
 
-#### Method 2: Install from VSIX in GUI
-1. Download `9router-monitor-pro-1.1.0.vsix` from [GitHub Releases](https://github.com/minhtalent-dev/9router-monitor-pro/releases).
-2. In your IDE, open the Extensions view (`Ctrl+Shift+X`).
-3. Click the `...` menu (Views and More Actions) at the top right of the Extensions panel.
-4. Select **Install from VSIX...** and choose the downloaded file.
+---
+
+### Option 3 · Offline VSIX Package
+
+For air-gapped environments or manual installations:
+1. Download the latest `9router-monitor-pro-1.1.0.vsix` from [GitHub Releases](https://github.com/minhtalent-dev/9router-monitor-pro/releases).
+2. Open Extensions view (`Ctrl+Shift+X`) -> click the `...` menu (Views and More Actions) -> select **Install from VSIX...**
+3. Or install via terminal:
+   ```bash
+   code --install-extension 9router-monitor-pro-1.1.0.vsix --force
+   ```
 
 ---
 
@@ -221,6 +256,8 @@ Customize extension behavior in your `settings.json`:
 
 - **Author**: [Minhtalent-dev](https://github.com/minhtalent-dev)
 - **Repository**: [github.com/minhtalent-dev/9router-monitor-pro](https://github.com/minhtalent-dev/9router-monitor-pro)
+- **VS Code Marketplace**: [minhtalent-dev.9router-monitor-pro](https://marketplace.visualstudio.com/items?itemName=minhtalent-dev.9router-monitor-pro)
+- **Open VSX Registry**: [minhtalent-dev/9router-monitor-pro](https://open-vsx.org/extension/minhtalent-dev/9router-monitor-pro)
 - **License**: Released under the [MIT License](LICENSE). © 2026 Minhtalent-dev. All rights reserved.
 
 ```
