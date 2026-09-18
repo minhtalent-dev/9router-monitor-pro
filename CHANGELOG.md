@@ -5,10 +5,36 @@ All notable changes to this project are documented in this file.
 ## [1.1.0] - 2026-09-18
 
 ### Added
-- 🖥️ **Live Console Log**: Stream nhật ký máy chủ thời gian thực qua SSE (`/api/translator/console-logs/stream`), giao diện terminal đen Fluent dark, nút Pause/Resume, Clear đồng bộ server, Auto-scroll, Filter tìm kiếm, tô màu cú pháp theo mã trạng thái (DONE, POST, TOKEN_REFRESH, WARN, ERROR).
-- 📈 **Usage & Analytics**: Dashboard giám sát tổng hợp 5 thẻ KPI (Total Requests, Prompt Tokens, Cached Tokens, Completion Tokens, Est. Cost) và bảng lịch sử 20 request gần nhất.
-- ⚡ **Dedicated Status Bar Log Widget**: Thêm icon phụ `$(terminal) 9R Log` cạnh thanh trạng thái chính, click 1 chạm mở thẳng tab Console Log; hỗ trợ bật/tắt linh hoạt qua setting `aiTokenUsage.showLogStatusBar` hoặc Quick Menu.
-- 🔄 **Zero State Loss Navigation**: Chuyển đổi qua lại giữa 3 Tab (Providers & Quotas, Usage Analytics, Live Console) bằng CSS display toggle, giữ nguyên 100% nội dung log, filter và vị trí cuộn.
+- 🖥️ **Live Console Log (SSE & Adaptive Tunnel)**: 
+  - Tích hợp tab Console Log máy chủ trực tiếp vào Webview Dashboard qua kết nối SSE chuẩn RFC (`/api/translator/console-logs/stream`).
+  - Giao diện terminal đen Fluent dark cao cấp với tô màu cú pháp theo mã trạng thái (`DONE`, `POST`, `TOKEN_REFRESH`, `WARN`, `ERROR`), huy hiệu trạng thái `Live (SSE)` hoặc `Live (Tunnel)`.
+  - Bộ điều khiển mạnh mẽ: Pause/Resume stream, Clear đồng bộ máy chủ, Reconnect tức thời, Auto-scroll thông minh.
+  - Hỗ trợ lọc theo từ khóa, chọn ngày linh hoạt (tự động rollover sang ngày mới lúc nửa đêm) và phân trang linh hoạt (100, 200, 500, All dòng; nút First/Prev/Next/Last).
+- 📈 **Usage & Analytics**:
+  - Tích hợp tab giám sát hiệu năng và chi phí với 5 thẻ KPI trọng yếu: Total Requests, Prompt Tokens, Cached Tokens, Completion Tokens và Est. Cost.
+  - Bảng thống kê chi tiết lịch sử các yêu cầu gần nhất kèm thông tin Model, Provider, Tài khoản, Tỷ lệ In/Out Tokens và trạng thái xử lý.
+  - Tích hợp bộ chọn ngày (Today/All/DatePicker), tự động làm mới theo chu kỳ (1s, 2.5s, 5s, 10s, 30s) hoặc làm mới thủ công.
+- ⚡ **Dedicated Status Bar 9R Log Widget**:
+  - Bổ sung widget trạng thái độc lập `$(terminal) 9R Log` đặt cạnh widget Quota chính, hiển thị trạng thái kết nối và nhịp đập trực tiếp (Live Pulse).
+  - Cung cấp 3 chế độ hiển thị linh hoạt: `Minimal` (`$(terminal) 9R Log`), `Compact` (`$(terminal) 9R Log · 10.1K req · G3.8 🟢`), và `Detailed` (`$(terminal) 9R Log · 10.1K req · $980 · G3.8 7.2K/940 🟢`).
+  - Tùy chỉnh bật/tắt widget độc lập qua setting `aiTokenUsage.showLogStatusBar`.
+- 🔍 **Minimalist Hover Intelligence HUD**:
+  - Tooltip Markdown mật độ cao khi hover vào 9R Log Status Bar: hiển thị tức thì bảng snapshot KPI và danh sách 10/25/50 giao dịch gần nhất.
+  - Lựa chọn nhanh số lượng log hiển thị (`Show: 10  25  50`) ngay trên tooltip với độ trễ 0ms.
+  - Thiết kế đồng bộ hoàn hảo giữa Quota Monitor tooltip và 9R Log tooltip với chân trang điều hướng thống nhất 6 action: `Quick Menu`, `Dashboard`, `Live Console Log`, `Usage Analytics`, `Mode: [Current]`, và `Refresh`.
+- ⏱️ **Dual-Timer Auto-Refresh Architecture**:
+  - Tách biệt hai chu kỳ làm mới độc lập: Quota Timer cho hạn mức tài khoản (mặc định 60s) và 9R Log Fast Timer cho telemetry/giao dịch (mặc định 10s, hỗ trợ từ 3s).
+  - Tải ngầm siêu tốc ~200ms không gây gián đoạn hay block giao diện người dùng.
+- 🏗️ **Modular Clean Architecture**:
+  - Tái cấu trúc toàn bộ mã nguồn theo chuẩn Clean Architecture 5 tầng: Domain Models (`types/`), Transport Layer (`services/httpTransport.ts`), Specialized Services (`quotaService.ts`, `analyticsService.ts`, `logStreamEngine.ts`, `apiClient.ts`), UI Controllers (`statusBar.ts`, `tooltip.ts`, `quickMenu.ts`, `dashboardPanel.ts`), và Modular Views (`views/tabs/`, `views/styles/`, `views/scripts/`).
+  - Loại bỏ hoàn toàn các God-files nguyên khối, đảm bảo cấu trúc DAG không circular dependencies.
+
+### Fixed
+- **Cloudflare Tunnel SSE Buffering Freeze**: Triển khai Adaptive Log Engine tự động nhận diện URL Remote / Cloudflare Tunnel để chuyển đổi sang cơ chế transaction polling thông minh với bộ đệm khử trùng lặp (Deduplication Set), vượt qua cơ chế proxy buffering của Cloudflare.
+- **HTTP 401 Unauthorized do CLI Secret đa tài khoản**: Triển khai quét đa thư mục AppData cục bộ và tự động chọn CLI Token mới nhất theo thời gian sửa đổi file (`mtimeMs`).
+- **Màn hình Terminal trống khi kết nối**: Loại bỏ fake init event và chuẩn hóa cơ chế phân tách chunk SSE theo ranh giới `\n\n` chuẩn RFC.
+- **Lỗi Stale Cache Reset Display Styles**: Loại bỏ biến đệm trong bộ nhớ gây ghi đè cài đặt người dùng, đồng bộ trực tiếp với `vscode.workspace.getConfiguration` làm nguồn chân lý duy nhất (Single Source of Truth).
+- **Rơi dòng menu footer tooltip**: Loại bỏ ký tự phân cách gạch đứng `|` rườm rà, tối ưu khoảng cách hiển thị nút bấm gọn gàng, thanh thoát trên 1 dòng đơn.
 
 ## [1.0.3] - 2026-09-17
 

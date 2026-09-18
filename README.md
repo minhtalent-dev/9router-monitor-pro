@@ -24,27 +24,58 @@
 ## 📸 Visual Showcase & Feature Tour
 
 ### 1. Interactive Webview Dashboard Pro Max (3-Tab Command Center)
-A comprehensive control center with seamless tabbed navigation:
-- **📊 Providers & Quotas**: High-performance Fluent Dark Theme grid matrix that gives you an immediate overview of all AI providers connected to 9Router. Features realtime keyword search, dynamic category filter chips (`Antigravity`, `Gemini`, `Claude`, `Codex`, etc.), multi-criteria sorting, and one-click pin/hide/active controls.
-- **📈 Usage & Analytics**: Real-time aggregated monitoring with 5 KPI cards (Total Requests, Prompt Tokens, Cached Tokens, Completion Tokens, Est. Cost) and a live historical table of the 20 most recent requests with status badges.
-- **🖥️ Live Console Log**: Stream server logs in real time over Server-Sent Events (SSE) directly into an embedded Fluent dark terminal. Features Pause/Resume, Server Clear sync, Auto-scroll, text search/filter, and syntax highlighting (`DONE`, `POST`, `TOKEN_REFRESH`, `WARN`, `ERROR`).
-- **🔄 Zero State Loss**: Switching between tabs uses CSS display toggling to preserve 100% of the terminal log buffer, scroll position, and search filter state without reloading.
+A comprehensive, zero-latency control center with seamless tabbed navigation:
 
-![9Router Monitor Pro Webview Dashboard](media/screenshot-dashboard.png)
+#### Tab 1 · 📊 Providers & Quotas
+High-performance Fluent Dark Theme grid matrix that gives you an immediate overview of all AI providers connected to 9Router. Features realtime keyword search, dynamic category filter chips (`Antigravity`, `Gemini`, `Claude`, `Codex`, etc.), multi-criteria sorting (Highest Usage, Lowest, Name, Priority), and one-click pin/hide/active controls.
 
-### 2. Multi-Account Status Bar Aggregation & Dedicated Log Widget
+![Providers and Quotas Tab](media/screenshot-dashboard.png)
+
+#### Tab 2 · 📈 Usage & Analytics
+Real-time aggregated monitoring with 5 KPI cards (**Total Requests**, **Prompt Tokens**, **Cached Tokens**, **Completion Tokens**, **Est. Cost**) and a live historical table of recent requests with HTTP status badges, token in/out ratios, model, and active accounts. Features Date Picker filtering with midnight rollover and configurable auto-reload intervals.
+
+![Usage and Analytics Tab](media/screenshot-analytics.png)
+
+#### Tab 3 · 🖥️ Live Console Log
+Stream server logs in real time over Server-Sent Events (SSE) directly into an embedded Fluent dark terminal. Features Pause/Resume, Server Clear sync, Auto-scroll, text search/filter, date range navigation, flexible pagination (100, 200, 500, All), and syntax highlighting (`DONE`, `POST`, `TOKEN_REFRESH`, `WARN`, `ERROR`). Automatically activates an **Adaptive Tunnel Engine** when connecting remotely via Cloudflare Tunnel to bypass proxy response buffering.
+
+![Live Console Log Tab](media/screenshot-console-log.png)
+
+---
+
+### 2. Dual Status Bar Widgets & Live Telemetry Pulse
 Never crowd your status bar. 9Router Monitor Pro provides two complementary status bar indicators:
-- **Main Quota Widget**: When pinning multiple accounts, automatically sums up remaining balances and total quotas into a single condensed metric (`10 ⭐ · G3.8 9.9K · GW 8.6K`). Hovering reveals a high-density Markdown inspection table with per-account breakdowns, usage percentages, and reset countdowns.
-- **⚡ Dedicated Log Widget (`$(terminal) 9R Log`)**: An independent status bar shortcut placed right next to the main quota widget. 1-click opens directly into the Live Console Log tab. Can be toggled on/off at any time via `aiTokenUsage.showLogStatusBar` or Quick Menu.
+- **📊 Main Quota Widget**: Sums up remaining balances and total quotas across all pinned accounts into a single condensed metric (`10 ⭐ · G3.8 9.4K · GW 7.6K`). Hovering reveals a high-density Markdown inspection table with aggregate totals and per-account breakdowns.
+- **⚡ Dedicated 9R Log Widget (`$(terminal) 9R Log · 10.2K req · G3.8 🟢`)**: An independent status bar widget placed right next to the main quota bar. Shows real-time request density, current active model, and a live health pulse dot (`🟢`). Click to open directly into the Live Console Log.
 
-![Status Bar Aggregation & Details Tooltip](media/screenshot-status.png)
+![Dual Status Bar Widgets](media/screenshot-status.png)
 
-### 3. Persistent Quick Menu
-No more frustrating hover dismissals! Click the status bar metric to open an interactive, keyboard-navigable Quick Menu. Easily multi-select accounts or models to pin, enable/disable provider accounts, adjust auto-refresh intervals, switch status bar display styles, or reconfigure connections.
+---
 
-![Persistent Quick Menu](media/screenshot-quickmenu.png)
+### 3. Minimalist Hover Intelligence HUD
+Hover over the **9R Log** status bar item to trigger the instant Hover Intelligence HUD:
+- **KPI Snapshot Matrix**: Immediate glance at total requests, input tokens, cache hits, output tokens, and estimated cost.
+- **Recent Transactions Stream**: Interactive table showing the last 10, 25, or 50 API transactions with timestamps, target models, providers, token volumes, and execution statuses.
+- **Synchronized Action Bar**: 1-click links to Quick Menu, Dashboard, Live Console Log, Usage Analytics, Tooltip Mode toggle, and Instant Refresh.
 
-### 4. Full Command Palette Integration
+![Hover Intelligence HUD](media/screenshot-tooltip-log.png)
+
+---
+
+### 4. Persistent Quick Menu & Advanced Controls
+No more frustrating hover dismissals! Click the status bar metric to open an interactive, keyboard-navigable Quick Menu:
+- **Account & Model Pinning**: Multi-select accounts and AI models to track and aggregate.
+- **Account Activation**: Toggle provider account active/inactive status in 9Router on the fly.
+- **Dedicated Timers**: Configure independent auto-refresh intervals for Quota checks (5s–5m) and Fast 9R Log telemetry (3s–60s).
+- **Display Styles**: Customize both Status Bar and Tooltip detail levels with instant preview.
+
+| Account & Model Controls | Display Styles & Timers |
+|:---:|:---:|
+| ![Quick Menu Overview](media/screenshot-quickmenu.png) | ![Quick Menu Advanced Settings](media/screenshot-quickmenu-advanced.png) |
+
+---
+
+### 5. Full Command Palette Integration
 Every single feature is natively exposed to the VS Code Command Palette (`Ctrl+Shift+P` -> `9router`). Manage your AI quotas entirely from the keyboard with zero context switching.
 
 ![Command Palette Integration](media/screenshot-commands.png)
@@ -88,13 +119,23 @@ If 9Router is running on a remote server, home lab, or separate machine:
 
 ## 🎨 Status Bar Display Styles
 
-You can switch display styles at any time via **Quick Menu -> Status Bar Display Style** or via Settings (`aiTokenUsage.statusDisplayMode`):
+Customize the visual density of both the **Main Quota Bar** and the **9R Log Bar** directly via Quick Menu or Settings:
+
+### 1. Main Quota Monitor Bar (`aiTokenUsage.statusDisplayMode`)
 
 | Style | Preview (Multi-Account) | Preview (Single Account) | Best For |
 |:---|:---|:---|:---|
-| **Compact** *(Default)* | `10⭐ · G3.8 9.9K · GW 8.6K` | `⭐ Pro-Acc · G3.8 980` | Clean, high-density daily workflow |
-| **Detailed** | `⭐ 10 acc · G3.8 9.9K/10K (06:16 PM)` | `⭐ Pro-Acc · G3.8 980/1K (06:16 PM)` | Full audit & tracking reset cycles |
-| **Minimal** | `G3.8 9.9K · GW 8.6K` | `G3.8 980` | Ultra-condensed, minimal screen usage |
+| **Compact** *(Default)* | `10⭐ · G3.8 9.4K · GW 7.6K` | `⭐ Pro-Acc · G3.8 980` | Clean, high-density daily workflow |
+| **Detailed** | `⭐ 10 acc · G3.8 9.4K/10K (06:16 PM)` | `⭐ Pro-Acc · G3.8 980/1K (06:16 PM)` | Full audit & tracking reset schedules |
+| **Minimal** | `G3.8 9.4K · GW 7.6K` | `G3.8 980` | Ultra-condensed, minimal screen usage |
+
+### 2. Dedicated 9R Log Telemetry Bar (`aiTokenUsage.logStatusDisplayMode`)
+
+| Style | Status Bar Preview | Telemetry Metrics | Best For |
+|:---|:---|:---|:---|
+| **Minimal** | `$(terminal) 9R Log` | Clean icon and label only | Low distraction, simple shortcut |
+| **Compact** *(Recommended)* | `$(terminal) 9R Log · 10.2K req · G3.8 🟢` | Total requests + last active model + live pulse | Balanced glanceable activity |
+| **Detailed** | `$(terminal) 9R Log · 10.2K req · $1015 · G3.8 7.6K/642 🟢` | Requests + estimated cost + model token IO ratio + pulse | Comprehensive real-time telemetry |
 
 ---
 
@@ -128,15 +169,22 @@ All commands are prefixed with `9Router Monitor Pro` in the Command Palette (`Ct
 
 | Command | Title | Description |
 |:---|:---|:---|
-| `aiTokenUsage.openQuickMenu` | `Open Interactive Menu` | Open interactive popup menu to pin accounts, pin models, toggle status, and change settings |
+| `aiTokenUsage.openQuickMenu` | `Open Interactive Menu` | Open interactive popup menu to pin accounts, pin models, toggle status, and configure styles |
 | `aiTokenUsage.showDetails` | `Show Dashboard` | Open the full Webview Dashboard with search, filters, and cards |
 | `aiTokenUsage.openConsoleLog` | `Open Live Console Log` | Open Webview Dashboard directly at the Live Console Log tab |
+| `aiTokenUsage.openUsageAnalytics` | `Open Usage & Analytics` | Open Webview Dashboard directly at the Usage & Analytics tab |
 | `aiTokenUsage.toggleLogStatusBar` | `Toggle Console Log Status Bar Item` | Toggle visibility of the `$(terminal) 9R Log` status bar button |
-| `aiTokenUsage.refresh` | `Refresh` | Manually trigger immediate quota check with progress indicator |
-| `aiTokenUsage.setConnection` | `Set Connection (URL & Password)` | Configure Base URL (Cloudflare Tunnel or Local) and Dashboard Password |
-| `aiTokenUsage.setDisplayMode` | `Set Status Bar Display Style` | Switch between Compact, Detailed, and Minimal status bar styles |
+| `aiTokenUsage.setLogStatusDisplayMode` | `Set 9R Log Status Bar Style` | Switch 9R Log Bar between Minimal, Compact, and Detailed modes |
+| `aiTokenUsage.setLogTooltipMode` | `Set 9R Log Tooltip Detail Mode` | Configure 9R Log hover tooltip detail: All Details, KPI Summary Only, or Logs Only |
+| `aiTokenUsage.toggleLogTooltipMode` | `Toggle 9R Log Tooltip Mode` | 1-click cycle between All, Summary, and Logs tooltip detail levels |
+| `aiTokenUsage.setLogRefreshInterval` | `Set 9R Log Refresh Interval` | Set fast telemetry auto-refresh frequency (3s, 5s, 10s, 15s, 30s, 60s, or custom) |
+| `aiTokenUsage.setDisplayMode` | `Set Status Bar Display Style` | Switch Quota Bar between Compact, Detailed, and Minimal styles |
 | `aiTokenUsage.setTooltipMode` | `Set Tooltip Detail Level` | Choose between All Details, Aggregate Summary Only, or Account List Only |
-| `aiTokenUsage.setInterval` | `Set Refresh Interval` | Set auto-refresh frequency (15s, 30s, 60s, 2m, 5m, or custom) |
+| `aiTokenUsage.toggleTooltipMode` | `Toggle Tooltip Mode` | 1-click toggle between Summary Only and All Details |
+| `aiTokenUsage.setInterval` | `Set Refresh Interval` | Set quota auto-refresh frequency (5s, 10s, 15s, 30s, 60s, 2m, 5m, or custom) |
+| `aiTokenUsage.showDebugLogs` | `View Live Debug Output Logs` | Open the diagnostic Output Channel for real-time socket and HTTP traces |
+| `aiTokenUsage.refresh` | `Refresh` | Manually trigger immediate quota check with native progress notification |
+| `aiTokenUsage.setConnection` | `Set Connection (URL & Password)` | Configure Base URL (Cloudflare Tunnel or Local) and Dashboard Password |
 
 ---
 
@@ -147,11 +195,14 @@ Customize extension behavior in your `settings.json`:
 | Setting | Type | Default | Description |
 |:---|:---:|:---:|:---|
 | `aiTokenUsage.showLogStatusBar` | `boolean` | `true` | Show dedicated `$(terminal) 9R Log` status bar item to quickly open Console Log |
-| `aiTokenUsage.statusDisplayMode` | `string` | `"compact"` | Status bar style: `"compact"`, `"detailed"`, or `"minimal"` |
-| `aiTokenUsage.tooltipDisplayMode` | `string` | `"all"` | Tooltip content detail: `"all"` (both summary & accounts), `"summary"` (summary table only), or `"accounts"` (account list only) |
+| `aiTokenUsage.logStatusDisplayMode` | `string` | `"minimal"` | 9R Log status bar style: `"minimal"`, `"compact"` (with reqs & live pulse), or `"detailed"` (with reqs & cost) |
+| `aiTokenUsage.logTooltipDisplayMode` | `string` | `"all"` | 9R Log tooltip detail: `"all"` (KPI + recent logs), `"summary"` (KPI only), or `"logs"` (recent logs only) |
+| `aiTokenUsage.logStatusBarRefreshIntervalSeconds` | `number` | `10` | Fast telemetry refresh rate in seconds (minimum: 3s) |
+| `aiTokenUsage.statusDisplayMode` | `string` | `"compact"` | Main Quota status bar style: `"compact"`, `"detailed"`, or `"minimal"` |
+| `aiTokenUsage.tooltipDisplayMode` | `string` | `"all"` | Main Quota tooltip detail: `"all"`, `"summary"` (summary only), or `"accounts"` (accounts only) |
+| `aiTokenUsage.refreshIntervalSeconds` | `number` | `60` | Quota auto-refresh frequency in seconds (minimum: 5s) |
 | `aiTokenUsage.apiBaseUrl` | `string` | `"http://localhost:20128"` | 9Router Base URL (e.g. `http://localhost:20128` or `https://*.trycloudflare.com`) |
 | `aiTokenUsage.authMode` | `string` | `"auto"` | Authentication method: `"auto"`, `"password"`, or `"token"` |
-| `aiTokenUsage.refreshIntervalSeconds` | `number` | `60` | Auto-refresh frequency in seconds (minimum: 10) |
 | `aiTokenUsage.statusBarQuota` | `string` | `"session"` | Fallback quota for status bar when no model is explicitly pinned |
 | `aiTokenUsage.providersPath` | `string` | `"/api/providers?..."` | Endpoint to fetch provider account connections |
 | `aiTokenUsage.usagePathTemplate` | `string` | `"/api/usage/{id}"` | Endpoint template to fetch quota by provider ID |
