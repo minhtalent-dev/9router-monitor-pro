@@ -25,8 +25,9 @@ Nâng cấp Webview Dashboard của **9Router Monitor Pro** thành trung tâm đ
 1. **Providers & Quotas** (Tab hiện tại): Quản lý danh sách tài khoản, tìm kiếm model, phân nhóm chip và ghim status bar.
 2. **Usage & Analytics** (Tính năng mới): Giám sát tổng số request, lượng token tiêu thụ (Input, Output, Cached), chi phí ước tính (Est. Cost) và bảng lịch sử request thời gian thực.
 3. **Live Console Log** (Tính năng mới): Stream nhật ký xử lý máy chủ thời gian thực qua Server-Sent Events (SSE) với giao diện terminal nhúng, hỗ trợ tạm dừng, xóa log, tự cuộn và lọc màu theo mức độ (DONE, POST, WARN, ERROR).
+4. **Dedicated Status Bar Log Widget (Option 2)**: Bổ sung một icon Status Bar phụ độc lập `$(terminal) 9R Log` hiển thị cạnh thanh quota chính. Click vào sẽ mở trực tiếp tab Console Log trong Dashboard; hỗ trợ bật/tắt linh hoạt theo ý thích qua cấu hình `aiTokenUsage.showLogStatusBar`.
 
-Giúp nhà phát triển nắm bắt trọn vẹn tình trạng hoạt động và gỡ lỗi 9Router trực tiếp trong IDE mà không cần mở song song nhiều tab trình duyệt.
+Giúp nhà phát triển nắm bắt trọn vẹn tình trạng hoạt động và gỡ lỗi 9Router trực tiếp trong IDE mà không cần mở song song nhiều tab trình duyệt, đồng thời cho phép truy cập nhanh console log trong 1 click từ status bar.
 
 ---
 
@@ -34,26 +35,39 @@ Giúp nhà phát triển nắm bắt trọn vẹn tình trạng hoạt động v
 
 - **In scope**:
   - Khảo sát và bổ sung các types dữ liệu: `UsageStats`, `RequestLogItem`, `ConsoleStreamMessage` vào `src/types/index.ts`.
+  - Bổ sung cấu hình `aiTokenUsage.showLogStatusBar` (`boolean`, mặc định `true`) vào `package.json` và `ExtensionConfig`.
+  - Mở rộng `src/services/stateManager.ts`: Quản lý lifecycle cho `logStatusBarItem`.
   - Mở rộng `src/services/apiClient.ts`:
     - Hàm `fetchUsageStats(config, auth)` gọi endpoint `GET /api/usage/stats`.
     - Hàm `fetchRequestLogs(config, auth, page, limit)` gọi endpoint `GET /api/usage/request-logs`.
     - Hàm `openConsoleLogStream(config, auth, onMessage, onError)` mở kết nối HTTP/HTTPS Server-Sent Events (SSE) stream `GET /api/translator/console-logs/stream`, giải mã JSON payload (`init`, `line`, `lines`, `clear`) và quản lý vòng đời stream an toàn kèm auto-reconnect backoff (3s).
     - Hàm `clearServerConsoleLogs(config, auth)` gọi endpoint `DELETE /api/translator/console-logs`.
+  - Mở rộng `src/ui/statusBar.ts`:
+    - Khởi tạo và quản lý `logStatusBarItem` hiển thị `$(terminal) 9R Log` với tooltip `Click to open 9Router Live Console Log`.
+    - Điều khiển hiển thị/ẩn dựa trên `cfg.showLogStatusBar`.
   - Mở rộng `src/ui/dashboardPanel.ts`:
+    - Hỗ trợ tham số `initialTab?: 'providers' | 'analytics' | 'console'` khi gọi `showDetails`.
     - Lắng nghe message bus từ Webview: `startConsoleStream`, `stopConsoleStream`, `clearConsoleLogs`, `fetchAnalytics`.
     - Điều phối stream log từ Node.js Extension Host chuyển tiếp sang Webview qua `postMessage`.
     - Tự động hủy stream khi Webview panel đóng (`dispose`) hoặc khi chuyển sang tab khác để chống rò rỉ socket và CPU.
+  - Mở rộng `src/ui/quickMenu.ts`:
+    - Thêm action `$(terminal) Open Live Console Log` trong Quick Menu.
+    - Thêm toggle action `Show / Hide Console Log Status Bar Item`.
   - Cải tiến `src/views/dashboardTemplate.ts`:
+    - Nhận tham số `initialTab` để kích hoạt sẵn tab tương ứng khi mở.
     - Thanh Tab Bar chuyển đổi trên Header: `[📊 Providers & Quotas]` · `[📈 Usage Analytics]` · `[🖥️ Console Log]` (dùng kỹ thuật ẩn hiện CSS `display: none` / `block` để giữ nguyên 100% DOM state, vị trí cuộn và bộ nhớ đệm log khi chuyển tab qua lại).
     - Giao diện Tab **Usage & Analytics**: 5 thẻ KPI (Total Requests, Input Tokens, Cached Tokens, Output Tokens, Est. Cost) + Bảng lịch sử 20 request mới nhất.
     - Giao diện Tab **Live Console Log**: Khung Terminal đen bóng Fluent Design, thanh công cụ điều khiển (Pause/Resume, Clear đồng bộ server, Auto-scroll, Search/Filter), tô màu cú pháp log (ANSI/Tag highlighting: DONE xanh lá, POST xanh dương, TOKEN_REFRESH tím, WARN vàng, ERROR đỏ).
+  - Đăng ký commands mới trong `package.json` & `src/extension.ts`:
+    - `aiTokenUsage.openConsoleLog`: Mở trực tiếp tab Console Log.
+    - `aiTokenUsage.toggleLogStatusBar`: Bật/tắt icon log trên thanh status bar.
 - **Out of scope**:
-  - Không thay đổi hành vi của thanh trạng thái (Status Bar) và menu ngữ cảnh (Quick Menu).
+  - Không thay đổi hành vi hiển thị của thanh trạng thái quota chính (`statusBarItem`).
   - Không sửa đổi mã nguồn backend của 9Router server.
 - **Affected users/environments**:
-  - Toàn bộ người dùng tiện ích trên VS Code, Antigravity, Cursor, Windsurf khi mở Webview Dashboard.
+  - Toàn bộ người dùng tiện ích trên VS Code, Antigravity, Cursor, Windsurf.
 - **Data/contracts unchanged**:
-  - Giữ nguyên cấu hình hiện tại trong `settings.json` (`aiTokenUsage.statusDisplayMode`, `aiTokenUsage.tooltipDisplayMode`, `aiTokenUsage.apiBaseUrl`).
+  - Giữ nguyên các cấu hình hiện tại trong `settings.json` (`aiTokenUsage.statusDisplayMode`, `aiTokenUsage.tooltipDisplayMode`, `aiTokenUsage.apiBaseUrl`).
 
 ---
 
@@ -100,13 +114,17 @@ Giúp nhà phát triển nắm bắt trọn vẹn tình trạng hoạt động v
 
 | Action | File path | Symbol/area | Reason | Evidence | Owner phase |
 |:---|:---|:---|:---|:---|:---|
-| Edit | `src/types/index.ts` | `UsageStats`, `RequestLogItem`, `ConsoleStreamMessage` | Định nghĩa kiểu dữ liệu thống kê và cấu trúc sự kiện log chuẩn | `Confirmed` | P1 |
+| Edit | `src/types/index.ts` | `UsageStats`, `RequestLogItem`, `ConsoleStreamMessage`, `ExtensionConfig` | Định nghĩa kiểu dữ liệu thống kê, cấu trúc sự kiện log và setting `showLogStatusBar` | `Confirmed` | P1 |
 | Edit | `src/services/apiClient.ts` | `fetchUsageStats`, `fetchRequestLogs`, `openConsoleLogStream`, `clearServerConsoleLogs` | Triển khai hàm gọi API stats, delete logs và mở luồng SSE stream từ Node.js | `Confirmed` | P1 |
-| Edit | `src/ui/dashboardPanel.ts` | `showDetails`, message handlers | Lắng nghe command từ Webview, quản lý kết nối SSE và chuyển tiếp log | `Confirmed` | P2 |
+| Edit | `src/services/stateManager.ts` | `getLogStatusBarItem`, `setLogStatusBarItem` | Quản lý state cho widget status bar log phụ | `Confirmed` | P2 |
+| Edit | `src/ui/statusBar.ts` | `initStatusBar`, `renderStatusBar`, `updateLogStatusBar` | Khởi tạo và render `$(terminal) 9R Log` độc lập theo setting | `Confirmed` | P2 |
+| Edit | `src/ui/dashboardPanel.ts` | `showDetails`, message handlers | Hỗ trợ mở sẵn tab Console Log, quản lý kết nối SSE và chuyển tiếp log | `Confirmed` | P2 |
+| Edit | `src/ui/quickMenu.ts` | `openQuickMenu`, toggle actions | Thêm mục mở Console Log và toggle hiển thị widget status bar log | `Confirmed` | P2 |
 | Edit | `src/views/dashboardTemplate.ts` | HTML, CSS, JS layout | Bổ sung thanh Tab điều hướng, giao diện Usage Analytics và Terminal Console | `Confirmed` | P3 |
-| Edit | `package.json` | `version` | Nâng version lên `1.1.0` phản ánh tính năng lớn mới | `Confirmed` | P4 |
-| Edit | `CHANGELOG.md` | `[1.1.0]` | Ghi nhận chi tiết 2 tính năng Console Log và Analytics | `Confirmed` | P4 |
-| Edit | `README.md` | Features, Screenshots | Cập nhật tài liệu giới thiệu trung tâm điều khiển mới | `Confirmed` | P4 |
+| Edit | `src/extension.ts` | `activate`, `getConfig`, commands | Đăng ký commands `aiTokenUsage.openConsoleLog` và `aiTokenUsage.toggleLogStatusBar` | `Confirmed` | P3 |
+| Edit | `package.json` | `commands`, `configuration`, `version` | Khai báo setting `aiTokenUsage.showLogStatusBar`, commands và bump version 1.1.0 | `Confirmed` | P4 |
+| Edit | `CHANGELOG.md` | `[1.1.0]` | Ghi nhận chi tiết các tính năng Console Log, Analytics và Status Bar Log widget | `Confirmed` | P4 |
+| Edit | `README.md` | Features, Shortcuts, Config | Cập nhật tài liệu giới thiệu widget log status bar và trung tâm điều khiển mới | `Confirmed` | P4 |
 
 ---
 
@@ -116,10 +134,14 @@ Giúp nhà phát triển nắm bắt trọn vẹn tình trạng hoạt động v
 
 ```mermaid
 flowchart TD
-    User["Người dùng thao tác trên Webview Dashboard"] --> TabSwitch{"Chọn Tab trên Header"}
-    TabSwitch -->|"Tab: Providers & Quotas"| Tab1["Hiển thị danh sách tài khoản & Quota hiện có"]
-    TabSwitch -->|"Tab: Usage & Analytics"| Tab2["Gửi 'fetchAnalytics' tới Extension Host"]
-    TabSwitch -->|"Tab: Live Console Log"| Tab3["Gửi 'startConsoleStream' tới Extension Host"]
+    User["Người dùng thao tác"] --> Choice{"Hành động khởi đầu"}
+    Choice -->|"Click icon $(terminal) 9R Log trên Status Bar"| DirectLog["Chạy command aiTokenUsage.openConsoleLog"]
+    Choice -->|"Mở Dashboard từ Quick Menu / Status Quota"| TabSwitch["Webview Dashboard mở"]
+    DirectLog --> Tab3["Mở thẳng Tab 'Live Console Log'"]
+
+    TabSwitch -->|"Chọn Tab: Providers & Quotas"| Tab1["Hiển thị grid account & model cards"]
+    TabSwitch -->|"Chọn Tab: Usage & Analytics"| Tab2["Gửi 'fetchAnalytics' tới Extension Host"]
+    TabSwitch -->|"Chọn Tab: Live Console Log"| Tab3
 
     Tab2 --> ExtHost1["Extension Host gọi /api/usage/stats & /api/usage/request-logs"]
     ExtHost1 -->|"JSON stats & logs"| WebviewUpdate1["Webview render 5 thẻ KPI & bảng 20 requests"]
@@ -134,16 +156,20 @@ flowchart TD
 
 #### Fallback ASCII Flowchart (Dự phòng text thuần):
 ```
-[Webview Dashboard Header Tabs]
+[User Action]
    │
-   ├─► [Tab: Providers & Quotas] ──► Hiển thị grid account & model cards
+   ├─► [Click $(terminal) 9R Log trên Status Bar] ──► Mở thẳng Tab Live Console Log
    │
-   ├─► [Tab: Usage & Analytics]  ──► Extension fetch /api/usage/stats & request-logs
-   │                                  └──► Render 5 KPI Cards + Bảng Requests
-   │
-   └─► [Tab: Live Console Log]   ──► Extension mở GET /api/translator/console-logs/stream (SSE)
-                                      ├──► Pipe log events vào Terminal DOM
-                                      └──► Ngắt stream khi rời Tab hoặc đóng panel
+   └─► [Mở Webview Dashboard]
+         │
+         ├─► [Tab: Providers & Quotas] ──► Hiển thị grid account & model cards
+         │
+         ├─► [Tab: Usage & Analytics]  ──► Extension fetch /api/usage/stats & request-logs
+         │                                  └──► Render 5 KPI Cards + Bảng Requests
+         │
+         └─► [Tab: Live Console Log]   ──► Extension mở GET /api/translator/console-logs/stream (SSE)
+                                            ├──► Pipe log events vào Terminal DOM
+                                            └──► Ngắt stream khi rời Tab hoặc đóng panel
 ```
 
 ---
@@ -188,18 +214,31 @@ flowchart TD
       | { type: 'lines'; lines: string[] }
       | { type: 'clear' };
     ```
+  - Mở rộng `ExtensionConfig`: thêm trường `showLogStatusBar: boolean`.
 - [ ] Task 1.2: Triển khai API functions trong `src/services/apiClient.ts`:
   - Hàm `fetchUsageStats(config: ExtensionConfig, auth: AuthContext): Promise<UsageStats | undefined>` gọi `GET /api/usage/stats`.
   - Hàm `fetchRequestLogs(config: ExtensionConfig, auth: AuthContext, page = 1, limit = 20): Promise<RequestLogItem[]>` gọi `GET /api/usage/request-logs?page=${page}&limit=${limit}`, parse chuỗi delimiter ` | ` thành các trường có cấu trúc.
   - Hàm `openConsoleLogStream(config: ExtensionConfig, auth: AuthContext, onEvent: (msg: ConsoleStreamMessage) => void, onError: (err: Error) => void): () => void` gọi `GET /api/translator/console-logs/stream` (sử dụng native Node.js `http`/`https` với header `Accept: text/event-stream`, tự động parse JSON dòng `data: ...` và có cơ chế auto-reconnect sau 3 giây nếu socket đứt ngoài ý muốn).
   - Hàm `clearServerConsoleLogs(config: ExtensionConfig, auth: AuthContext): Promise<boolean>` gọi `DELETE /api/translator/console-logs`.
 
-### Phase 2: Điều phối Webview Message Bus & Lifecycle (P2)
+### Phase 2: Quản lý Widget Status Bar Phụ & Điều phối Message Bus (P2)
 **Depends on:** Phase 1  
-**Files:** `src/ui/dashboardPanel.ts`
+**Files:** `src/services/stateManager.ts`, `src/ui/statusBar.ts`, `src/ui/dashboardPanel.ts`, `src/ui/quickMenu.ts`
 
-- [ ] Task 2.1: Bổ sung biến quản lý stream `activeLogStreamAbort: (() => void) | undefined` trong `dashboardPanel.ts`.
-- [ ] Task 2.2: Bổ sung các message handlers trong `detailsPanel.webview.onDidReceiveMessage`:
+- [ ] Task 2.1: Quản lý state cho `logStatusBarItem` trong `src/services/stateManager.ts`:
+  - Thêm biến `logStatusBarItem: vscode.StatusBarItem | undefined`.
+  - Thêm getter/setter: `getLogStatusBarItem()`, `setLogStatusBarItem(item)`.
+- [ ] Task 2.2: Khởi tạo và điều khiển hiển thị `$(terminal) 9R Log` trong `src/ui/statusBar.ts`:
+  - Trong `initStatusBar(context)`: Tạo thêm `logStatusBarItem` nằm cạnh `statusBarItem` (alignment Right, priority 99).
+  - Gán `logStatusBarItem.command = 'aiTokenUsage.openConsoleLog'`.
+  - Gán `logStatusBarItem.text = '$(terminal) 9R Log'`.
+  - Gán `logStatusBarItem.tooltip = 'Click to open 9Router Live Console Log'`.
+  - Trong `renderStatusBar(cfg)`: Kiểm tra `cfg.showLogStatusBar !== false`: nếu bật thì `show()`, nếu tắt thì `hide()`.
+- [ ] Task 2.3: Bổ sung biến quản lý stream `activeLogStreamAbort: (() => void) | undefined` trong `dashboardPanel.ts`.
+- [ ] Task 2.4: Nâng cấp `showDetails` trong `src/ui/dashboardPanel.ts`:
+  - Thêm tham số `initialTab?: 'providers' | 'analytics' | 'console'`.
+  - Khi mở dashboard với `initialTab === 'console'`, kích hoạt tab Console Log ngay khi tải giao diện.
+- [ ] Task 2.5: Bổ sung các message handlers trong `detailsPanel.webview.onDidReceiveMessage`:
   - Nhận `startConsoleStream`:
     - Nếu đã có stream đang chạy, gọi abort cũ để tránh mở nhiều kết nối song song.
     - Lấy `authContext`, gọi `openConsoleLogStream`.
@@ -211,17 +250,22 @@ flowchart TD
   - Nhận `fetchAnalytics`:
     - Gọi song song `fetchUsageStats` và `fetchRequestLogs`.
     - Gửi kết quả về Webview qua `detailsPanel.webview.postMessage({ command: 'analyticsData', stats, logs })`.
-- [ ] Task 2.3: Đảm bảo khi `detailsPanel.onDidDispose` kích hoạt, tự động dọn dẹp và gọi hàm abort đóng kết nối SSE stream, gán `activeLogStreamAbort = undefined`.
+- [ ] Task 2.6: Cập nhật `src/ui/quickMenu.ts`:
+  - Bổ sung mục `$(terminal) Open Live Console Log` trong menu chính -> gọi `showDetails(context, cfg, onRefresh, 'console')`.
+  - Bổ sung mục `$(eye) Toggle Console Log Status Bar Item` -> chuyển đổi giá trị `aiTokenUsage.showLogStatusBar`.
+- [ ] Task 2.7: Đảm bảo khi `detailsPanel.onDidDispose` kích hoạt, tự động dọn dẹp và gọi hàm abort đóng kết nối SSE stream, gán `activeLogStreamAbort = undefined`.
 
-### Phase 3: Giao diện Webview Tab Bar, Analytics & Live Terminal (P3)
+### Phase 3: Giao diện Webview Tab Bar, Analytics, Live Terminal & Extension Commands (P3)
 **Depends on:** Phase 2  
-**Files:** `src/views/dashboardTemplate.ts`
+**Files:** `src/views/dashboardTemplate.ts`, `src/extension.ts`
 
-- [ ] Task 3.1: Thêm thanh chuyển Tab Bar ở Header Webview:
-  - `<div class="dashboard-tabs">` với 3 nút bấm:
-    - `<button class="dash-tab active" data-tab="providers">📊 Providers & Quotas</button>`
-    - `<button class="dash-tab" data-tab="analytics">📈 Usage & Analytics</button>`
-    - `<button class="dash-tab" data-tab="console">🖥️ Live Console Log</button>`
+- [ ] Task 3.1: Nâng cấp `getWebviewContent` trong `src/views/dashboardTemplate.ts`:
+  - Nhận tham số `initialTab: 'providers' | 'analytics' | 'console' = 'providers'`.
+  - Thêm thanh chuyển Tab Bar ở Header Webview:
+    - `<div class="dashboard-tabs">` với 3 nút bấm:
+      - `<button class="dash-tab${initialTab === 'providers' ? ' active' : ''}" data-tab="providers">📊 Providers & Quotas</button>`
+      - `<button class="dash-tab${initialTab === 'analytics' ? ' active' : ''}" data-tab="analytics">📈 Usage & Analytics</button>`
+      - `<button class="dash-tab${initialTab === 'console' ? ' active' : ''}" data-tab="console">🖥️ Live Console Log</button>`
   - Triển khai 3 view container riêng biệt: `#tabProvidersView`, `#tabAnalyticsView`, `#tabConsoleView`. Chuyển tab bằng cách toggling class `.tab-active` / CSS `display: none; display: block;` để giữ nguyên 100% nội dung terminal và vị trí cuộn.
 - [ ] Task 3.2: Thiết kế giao diện Tab **Usage & Analytics**:
   - Khung KPI Cards Grid (5 cột responsive): Total Requests, Total Input Tokens, Cached Tokens, Output Tokens, Estimated Cost ($).
@@ -240,6 +284,7 @@ flowchart TD
     - Nhãn `[WARN]`, `[HEADROOM]`: Màu vàng (#d29922).
     - Nhãn `[ERROR]`: Màu đỏ (#f85149).
 - [ ] Task 3.4: Xây dựng client script trong Webview:
+  - Khởi động tab ban đầu theo `initialTab`: nếu là `console` thì tự kích hoạt stream ngay.
   - Lắng nghe sự kiện click chuyển Tab:
     - Khi vào Tab Console -> gửi `startConsoleStream`.
     - Khi rời Tab Console -> gửi `stopConsoleStream`.
@@ -251,17 +296,29 @@ flowchart TD
     - `clear`: xóa sạch nội dung trong terminal.
   - Tự động cuộn xuống đáy nếu auto-scroll được bật và không trong trạng thái Pause.
   - Giới hạn tối đa 500 dòng log trong terminal (tự động xóa node cũ nhất khi vượt quá).
+- [ ] Task 3.5: Cập nhật `src/extension.ts`:
+  - Trong `getConfig()`: Đọc cấu hình `showLogStatusBar: cfg.get<boolean>('showLogStatusBar', true)`.
+  - Đăng ký lệnh `aiTokenUsage.openConsoleLog`: gọi `showDetails(context, getConfig(), onRefresh, 'console')`.
+  - Đăng ký lệnh `aiTokenUsage.toggleLogStatusBar`: toggle setting `aiTokenUsage.showLogStatusBar`.
 
 ### Phase 4: Kiểm thử, Chuẩn hoá & Đóng gói Phát hành (P4)
 **Depends on:** Phase 3  
 **Files:** `package.json`, `CHANGELOG.md`, `README.md`
 
-- [ ] Task 4.1: Kiểm tra build TypeScript và Webpack: chạy `npm run compile`.
-- [ ] Task 4.2: Đóng gói kiểm thử `.vsix` qua `quickbuild.bat`.
-- [ ] Task 4.3: Kiểm thử chức năng streaming log trực tiếp từ 9Router chạy trên máy.
-- [ ] Task 4.4: Kiểm thử chức năng ngắt stream khi chuyển tab hoặc đóng Webview.
-- [ ] Task 4.5: Nâng version lên `1.1.0` trong `package.json`, cập nhật `CHANGELOG.md` và `README.md`.
-- [ ] Task 4.6: Commit Git và tạo Git Tag `v1.1.0`.
+- [ ] Task 4.1: Cập nhật `package.json`:
+  - Khai báo setting `aiTokenUsage.showLogStatusBar` (kiểu `boolean`, mặc định `true`, mô tả "Show dedicated $(terminal) 9R Log status bar item to quickly open Console Log").
+  - Đăng ký 2 commands mới:
+    - `aiTokenUsage.openConsoleLog`: "9Router Monitor Pro: Open Live Console Log"
+    - `aiTokenUsage.toggleLogStatusBar`: "9Router Monitor Pro: Toggle Console Log Status Bar Item"
+  - Nâng version lên `1.1.0`.
+- [ ] Task 4.2: Kiểm tra build TypeScript và Webpack: chạy `npm run compile`.
+- [ ] Task 4.3: Đóng gói kiểm thử `.vsix` qua `quickbuild.bat`.
+- [ ] Task 4.4: Kiểm thử chức năng streaming log trực tiếp từ 9Router chạy trên máy.
+- [ ] Task 4.5: Kiểm thử click icon `$(terminal) 9R Log` trên status bar mở thẳng tab Console Log.
+- [ ] Task 4.6: Kiểm thử ẩn/hiện icon log status bar qua setting và quick menu.
+- [ ] Task 4.7: Kiểm thử chức năng ngắt stream khi chuyển tab hoặc đóng Webview.
+- [ ] Task 4.8: Cập nhật `CHANGELOG.md` và `README.md` phản ánh phiên bản 1.1.0.
+- [ ] Task 4.9: Commit Git và tạo Git Tag `v1.1.0`.
 
 ---
 
@@ -277,6 +334,8 @@ flowchart TD
 | `T-006` | Manual | Terminal Controls | Nút Pause dừng cuộn, Clear xóa màn hình, lọc text hoạt động chính xác | Webview Console | `AC-6` |
 | `T-007` | Stress | Giới hạn 500 log lines | Khi nhận hơn 500 dòng log, hệ thống tự xóa dòng cũ, không gây lag UI | Webview Terminal | `AC-7` |
 | `T-008` | Lifecycle | Đóng Webview / Chuyển Tab | Request SSE stream được abort ngay lập tức, không rò rỉ socket/bộ nhớ | Extension Host | `AC-8` |
+| `T-009` | Manual | Status Bar Item `$(terminal) 9R Log` | Click mở thẳng Webview tại Tab Live Console Log | VS Code Status Bar | `AC-10` |
+| `T-010` | Manual | Toggle `aiTokenUsage.showLogStatusBar` | Bật/tắt hiển thị icon log status bar mượt mà không ảnh hưởng thanh quota chính | VS Code Settings / Quick Menu | `AC-11` |
 
 ---
 
@@ -288,10 +347,12 @@ flowchart TD
 | Log streaming quá dày đặc làm đơ giao diện Webview | Medium | Medium | Áp dụng buffer throttle và giới hạn tối đa 500 phần tử DOM | CPU usage profiling | JARVIS |
 | Lỗi xác thực 401 khi gọi stream qua remote tunnel | Low | High | Tái sử dụng `auth.authToken` dạng Cookie header giống hệt luồng API hiện tại | HTTP status check | JARVIS |
 | Socket mạng chập chờn khi stream SSE | Medium | Low | Tích hợp cơ chế tự động reconnect sau 3s khi phát hiện socket đóng bất thường | SSE onerror event | JARVIS |
+| Thêm item status bar làm chật thanh trạng thái của user | Low | Low | Cung cấp setting `showLogStatusBar` cho phép ẩn đi chỉ bằng 1 click | User feedback | JARVIS |
 
 ### Phương án Rollback:
 - Nếu giao diện tab hoặc stream SSE phát sinh lỗi, có thể hoàn tác nhanh về commit `aa0292e` (bản `v1.0.3` ổn định).
 - Tab mặc định vẫn luôn là `Providers & Quotas` để đảm bảo tính năng cốt lõi hoạt động bình thường ngay cả khi server không hỗ trợ SSE.
+- Icon log status bar có thể tắt hoàn toàn qua setting mà không ảnh hưởng đến thanh quota chính.
 
 ---
 
@@ -306,6 +367,8 @@ flowchart TD
 - [ ] **AC-7**: Log được tô màu cú pháp rõ ràng, phân biệt rõ các sự kiện `DONE` (xanh lá), `POST` (xanh dương), `TOKEN_REFRESH` (tím), `WARN` (vàng), `ERROR` (đỏ).
 - [ ] **AC-8**: Bộ đệm Terminal tự động cắt bớt khi vượt quá 500 dòng; ngắt kết nối stream ngay khi rời tab hoặc đóng Webview; tự động reconnect khi rớt mạng.
 - [ ] **AC-9**: Bản build Webpack thành công, đóng gói VSIX `1.1.0` sạch sẽ không có lỗi runtime.
+- [ ] **AC-10**: Widget `$(terminal) 9R Log` hiển thị cạnh status bar chính, click vào mở trực tiếp tab Console Log trong Dashboard.
+- [ ] **AC-11**: Có thể bật/tắt widget log status bar qua setting `aiTokenUsage.showLogStatusBar` hoặc Quick Menu action mà không cần reload window.
 
 ---
 
@@ -317,7 +380,7 @@ flowchart TD
 
 ### Definition of Done (DoD):
 - 4 Phase được thực hiện đầy đủ theo đúng kế hoạch.
-- Toàn bộ 9 Acceptance Criteria vượt qua kiểm thử.
+- Toàn bộ 11 Acceptance Criteria vượt qua kiểm thử.
 - Đóng gói VSIX thành công và kiểm tra hoạt động trực tiếp trong VS Code.
 - Cập nhật tài liệu `CHANGELOG.md`, `README.md` và push Git Tag `v1.1.0`.
 
@@ -332,4 +395,15 @@ flowchart TD
 | Accessibility gate | `Pass` | Thiết kế giao diện Terminal có độ tương phản cao, hỗ trợ keyboard |
 | Compatibility gate | `Pass` | Tương thích song song VS Code và Antigravity |
 | DoD complete | `Pass` | Đầy đủ 11 sections chuẩn scoring 10/10 |
+
+---
+
+## 11. Execution Log & Decisions
+
+| Timestamp | Event / Change | Rationale / Evidence |
+|:---|:---|:---|
+| `2026-09-18` | Task Plan Created (`TASK-20260918-001`) | Khởi tạo kế hoạch nâng cấp Live Console Log & Usage Analytics dựa trên kết quả browser audit endpoints thật. |
+| `2026-09-18` | Browser Endpoint Verification | Xác thực các endpoints: `/api/translator/console-logs/stream` (SSE), `/api/translator/console-logs` (DELETE), `/api/usage/stats` (GET), `/api/usage/request-logs` (GET). |
+| `2026-09-18` | Update Plan: Option 2 Dedicated Log Widget | FOUNDER chọn Option 2: Thêm status bar item `$(terminal) 9R Log` độc lập với setting `aiTokenUsage.showLogStatusBar` (mặc định bật, tùy chỉnh bật/tắt linh hoạt). Cập nhật toàn diện vào file plan mà không làm mất thông tin cũ. |
+
 
