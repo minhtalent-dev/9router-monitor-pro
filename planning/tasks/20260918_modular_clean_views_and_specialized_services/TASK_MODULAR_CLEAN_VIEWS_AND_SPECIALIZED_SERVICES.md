@@ -89,61 +89,68 @@ Phân tách các thành phần thành các module chuyên biệt:
 | Action | File path | Symbol/area | Reason | Evidence | Owner phase |
 |:---|:---|:---|:---|:---|:---|
 | Create | `src/views/styles/dashboardStyles.ts` | `getDashboardStyles` | Tách toàn bộ CSS stylesheet (~770 lines) ra file riêng | `Confirmed` | P1 |
-| Create | `src/views/scripts/dashboardScript.ts` | `getDashboardScript` | Tách toàn bộ Webview client script (~900 lines) ra file riêng | `Confirmed` | P1 |
-| Create | `src/views/tabs/providersTab.ts` | `renderProvidersTab` | Tách giao diện HTML Tab Providers & Quotas | `Confirmed` | P1 |
+| Create | `src/views/scripts/dashboardScript.ts` | `getDashboardScript` | Tách toàn bộ Webview client script (~880 lines) ra file riêng | `Confirmed` | P1 |
+| Create | `src/views/tabs/providersTab.ts` | `renderProvidersTab` | Tách giao diện HTML Tab Providers & Quotas (nhận `initialTab`) | `Confirmed` | P1 |
 | Create | `src/views/tabs/analyticsTab.ts` | `renderAnalyticsTab` | Tách giao diện HTML Tab Usage & Analytics | `Confirmed` | P1 |
 | Create | `src/views/tabs/consoleLogTab.ts` | `renderConsoleLogTab` | Tách giao diện HTML Tab Live Console Log | `Confirmed` | P1 |
-| Edit | `src/views/dashboardTemplate.ts` | `getWebviewContent` | Tinh gọn thành Orchestrator ráp nối các components | `Confirmed` | P1 |
-| Create | `src/services/logStreamEngine.ts` | `openConsoleLogStream`, `clearServerConsoleLogs` | Tách engine SSE Stream và Tunnel Polling | `Confirmed` | P2 |
+| Edit | `src/views/dashboardTemplate.ts` | `getWebviewContent` | Tinh gọn thành Orchestrator ráp nối các components (< 150 lines) | `Confirmed` | P1 |
+| Create | `src/services/httpTransport.ts` | `requestWithAuth`, `buildUrl` | Tách HTTP transport primitives triệt tiêu Circular Dependency | `Confirmed` | P2 |
+| Create | `src/services/quotaService.ts` | `fetchDashboard`, `updateProviderActive`, parsers | Tách service tổng hợp quota, parsers và concurrency pool | `Confirmed` | P2 |
 | Create | `src/services/analyticsService.ts` | `fetchUsageStats`, `fetchRequestLogs` | Tách service gọi API thống kê & nhật ký giao dịch | `Confirmed` | P2 |
-| Create | `src/services/quotaService.ts` | `fetchDashboard`, `updateProviderActive` | Tách service tổng hợp quota và concurrency pool | `Confirmed` | P2 |
-| Edit | `src/services/apiClient.ts` | Core HTTP & Re-exports | Giữ lại `requestWithAuth`, re-export toàn bộ service con | `Confirmed` | P2 |
+| Create | `src/services/logStreamEngine.ts` | `openConsoleLogStream`, `clearServerConsoleLogs` | Tách engine SSE Stream và Tunnel Polling | `Confirmed` | P2 |
+| Edit | `src/services/apiClient.ts` | Barrel Re-exports | Đóng vai trò Facade Re-export toàn bộ API công khai | `Confirmed` | P2 |
 
 ---
 
 ## 5. Luồng
 
-### 5.1. Kiến trúc phân tầng sau khi Refactor
+### 5.1. Kiến trúc phân tầng sau khi Refactor (Directed Acyclic Graph - Không vòng lặp)
 
 ```mermaid
 flowchart TD
-    subgraph UI_Layer ["Presentation & Controller Layer"]
+    subgraph Presentation_Layer ["Presentation & Controller Layer"]
         Panel["dashboardPanel.ts"]
         Menu["quickMenu.ts"]
         Status["statusBar.ts"]
     end
 
     subgraph Views_Layer ["Views Layer (src/views/)"]
-        Template["dashboardTemplate.ts (Orchestrator)"]
-        Styles["styles/dashboardStyles.ts"]
-        Script["scripts/dashboardScript.ts"]
+        Template["dashboardTemplate.ts (Orchestrator < 150 lines)"]
+        Styles["styles/dashboardStyles.ts (CSS)"]
+        Script["scripts/dashboardScript.ts (Client JS)"]
         Tab1["tabs/providersTab.ts"]
         Tab2["tabs/analyticsTab.ts"]
         Tab3["tabs/consoleLogTab.ts"]
     end
 
     subgraph Services_Layer ["Services Layer (src/services/)"]
-        ApiClient["apiClient.ts (Facade / HTTP Primitives)"]
+        HttpTransport["httpTransport.ts (Transport Primitives)"]
         QuotaSvc["quotaService.ts"]
         AnalyticsSvc["analyticsService.ts"]
         StreamSvc["logStreamEngine.ts"]
-        AuthMgr["authManager.ts"]
-        StateMgr["stateManager.ts"]
+        ApiClient["apiClient.ts (Facade Barrel Re-export)"]
     end
 
     Panel --> Template
-    Template --> Styles
-    Template --> Script
+    Template -->|"nhúng vào head"| Styles
+    Template -->|"nhúng đáy body"| Script
     Template --> Tab1
     Template --> Tab2
     Template --> Tab3
 
-    Panel --> ApiClient
-    ApiClient --> QuotaSvc
-    ApiClient --> AnalyticsSvc
-    ApiClient --> StreamSvc
+    HttpTransport --> QuotaSvc
+    HttpTransport --> AnalyticsSvc
+    HttpTransport --> StreamSvc
+    AnalyticsSvc --> StreamSvc
+
     QuotaSvc --> ApiClient
     AnalyticsSvc --> ApiClient
+    StreamSvc --> ApiClient
+    HttpTransport --> ApiClient
+
+    Panel --> ApiClient
+    Status --> ApiClient
+    Menu --> ApiClient
 ```
 
 #### Fallback ASCII Architecture (Dự phòng text thuần):
@@ -151,18 +158,17 @@ flowchart TD
 [Presentation: dashboardPanel / statusBar / quickMenu]
    │
    ├─► [Views Layer: src/views/]
-   │     └── dashboardTemplate.ts (Orchestrator < 120 lines)
-   │           ├── styles/dashboardStyles.ts (CSS theme)
-   │           ├── scripts/dashboardScript.ts (Client JS logic)
-   │           ├── tabs/providersTab.ts (Tab 1 HTML)
-   │           ├── tabs/analyticsTab.ts (Tab 2 HTML)
-   │           └── tabs/consoleLogTab.ts (Tab 3 HTML)
+   │     └── dashboardTemplate.ts (Orchestrator < 150 lines)
+   │           ├── <head> ──► styles/dashboardStyles.ts (CSS theme ~770 lines)
+   │           ├── <body> ──► tabs/providersTab.ts, tabs/analyticsTab.ts, tabs/consoleLogTab.ts
+   │           └── đáy <body> ──► scripts/dashboardScript.ts (Client JS ~880 lines)
    │
    └─► [Services Layer: src/services/]
-         └── apiClient.ts (Facade & HTTP transport)
-               ├── quotaService.ts (Providers & accounts quota)
-               ├── analyticsService.ts (Usage stats & request logs)
-               └── logStreamEngine.ts (SSE & Tunnel Adaptive Engine)
+         ├── httpTransport.ts (Cơ sở: buildUrl, requestWithAuth)
+         │     ├──► quotaService.ts (Quotas, parsers, pool)
+         │     ├──► analyticsService.ts (Usage stats, request logs)
+         │     └──► logStreamEngine.ts (SSE & Tunnel engine)
+         └── apiClient.ts (Facade Barrel re-export toàn bộ 1 chiều - Tuyệt đối không vòng tròn)
 ```
 
 ---
@@ -178,7 +184,7 @@ flowchart TD
   - Xuất khẩu hàm `export function getDashboardStyles(): string`.
 - [ ] Task 1.2: Tạo thư mục `src/views/tabs/` và các file components:
   - `src/views/tabs/providersTab.ts`:
-    - Nhận `(data: DashboardData, context: vscode.ExtensionContext, cfg: ExtensionConfig, pinnedAccountIds: string[], pinnedModels: string[]): string`.
+    - Nhận `(data: DashboardData, context: vscode.ExtensionContext, cfg: ExtensionConfig, pinnedAccountIds: string[], pinnedModels: string[], initialTab: string): string`.
     - Trích xuất toàn bộ render HTML của search bar, filter chips, summary status bar và các provider account sections.
   - `src/views/tabs/analyticsTab.ts`:
     - Nhận `(initialTab: string): string`.
@@ -191,40 +197,48 @@ flowchart TD
   - Xuất khẩu hàm `export function getDashboardScript(initialTab: string, preferredFilter: string): string`.
 - [ ] Task 1.4: Refactor `src/views/dashboardTemplate.ts`:
   - Nhập khẩu `getDashboardStyles`, `getDashboardScript`, `renderProvidersTab`, `renderAnalyticsTab`, `renderConsoleLogTab`.
-  - Ráp nối thành template HTML khung: Header -> Tab Bar -> Settings Bar -> 3 Tabs Containers -> Stylesheet -> Script.
-  - Giảm kích thước file từ 2,108 dòng xuống dưới 120 dòng.
+  - Ráp nối thành template HTML khung: `<head>` nhúng `<style>${getDashboardStyles()}</style>`, phần `<body>` chứa Header -> Tab Bar -> Settings Bar -> 3 Tabs Containers, và đáy `<body>` nhúng `<script>${getDashboardScript(initialTab, preferredFilter)}</script>`.
+  - Giảm kích thước file từ 2,108 dòng xuống dưới 150 dòng.
 - [ ] Task 1.5: Biên dịch kiểm tra `npm run compile` đảm bảo không có lỗi cú pháp.
 
 ### Phase 2: Modularize Services Layer (P2)
 **Depends on:** Phase 1  
-**Files:** `src/services/quotaService.ts`, `src/services/analyticsService.ts`, `src/services/logStreamEngine.ts`, `src/services/apiClient.ts`
+**Files:** `src/services/httpTransport.ts`, `src/services/quotaService.ts`, `src/services/analyticsService.ts`, `src/services/logStreamEngine.ts`, `src/services/apiClient.ts`
 
-- [ ] Task 2.1: Tạo `src/services/quotaService.ts`:
-  - Di chuyển các hàm: `fetchDashboard`, `updateProviderActive`, `mapConcurrent`.
-  - Import `requestWithAuth`, `buildUrl` từ `./apiClient`.
-- [ ] Task 2.2: Tạo `src/services/analyticsService.ts`:
+- [ ] Task 2.1: Tạo `src/services/httpTransport.ts`:
+  - Di chuyển các primitives dùng chung: `buildUrl`, `requestWithAuth`, `RequestOptions`.
+  - Import `AuthContext`, `SECRET_SESSION_TOKEN`, `loginDashboard` từ `./authManager`.
+  - Không import bất kỳ service con nào để triệt tiêu hoàn toàn Circular Dependency.
+- [ ] Task 2.2: Tạo `src/services/quotaService.ts`:
+  - Di chuyển: `fetchDashboard`, `updateProviderActive`, `mapConcurrent`, `usageCache`, `buildUsagePath`, `parseProviders`, `normalizeProvider`, `parseUsage`, `normalizeQuota`.
+  - Import `buildUrl`, `requestWithAuth` từ `./httpTransport`.
+- [ ] Task 2.3: Tạo `src/services/analyticsService.ts`:
   - Di chuyển các hàm: `fetchUsageStats`, `fetchRequestLogs`.
-  - Import `requestWithAuth`, `buildUrl` từ `./apiClient`.
-- [ ] Task 2.3: Tạo `src/services/logStreamEngine.ts`:
-  - Di chuyển các hàm: `openConsoleLogStream`, `clearServerConsoleLogs`, `formatRequestLogAsConsoleLine`, `isLocalhostUrl`.
-  - Import `buildUrl` từ `./apiClient`, `fetchRequestLogs` từ `./analyticsService`.
-- [ ] Task 2.4: Cập nhật `src/services/apiClient.ts`:
-  - Giữ lại HTTP primitives: `buildUrl`, `requestWithAuth`.
-  - Thêm re-exports:
+  - Import `buildUrl`, `requestWithAuth` từ `./httpTransport`.
+- [ ] Task 2.4: Tạo `src/services/logStreamEngine.ts`:
+  - Di chuyển: `openConsoleLogStream`, `clearServerConsoleLogs`, `formatRequestLogAsConsoleLine`, `isLocalhostUrl`.
+  - Import `buildUrl`, `requestWithAuth` từ `./httpTransport`.
+  - Import `fetchRequestLogs` từ `./analyticsService`.
+- [ ] Task 2.5: Cập nhật `src/services/apiClient.ts`:
+  - Đóng vai trò Barrel Re-export duy nhất:
     ```typescript
+    export * from './httpTransport';
     export * from './quotaService';
     export * from './analyticsService';
     export * from './logStreamEngine';
     ```
-  - Giảm kích thước `apiClient.ts` từ 818 dòng xuống dưới 220 dòng.
-- [ ] Task 2.5: Biên dịch kiểm tra `npm run compile` đạt 0 lỗi.
+  - Giảm kích thước `apiClient.ts` từ 818 dòng xuống còn khoảng 15-20 dòng thuần túy re-export.
+- [ ] Task 2.6: Biên dịch kiểm tra `npm run compile` đạt 0 lỗi.
 
 ### Phase 3: Kiểm thử hồi quy, Đo lường & Đóng gói (P3)
 **Depends on:** Phase 2  
 **Files:** Toàn bộ workspace
 
 - [ ] Task 3.1: Chạy `npm run compile` và kiểm tra `get_errors` đảm bảo không có lỗi TypeScript hay linter.
-- [ ] Task 3.2: Chạy lệnh đo lường số dòng code của toàn bộ các file sau refactor, xác nhận không còn file nào vượt quá 500 dòng.
+- [ ] Task 3.2: Chạy lệnh đo lường số dòng code của toàn bộ các file sau refactor, xác nhận:
+  - `src/views/dashboardTemplate.ts` < 150 lines.
+  - Các file TypeScript logic / service con đều < 450 lines.
+  - Các file asset tĩnh/client (`dashboardStyles.ts` < 800 lines, `dashboardScript.ts` < 950 lines).
 - [ ] Task 3.3: Đóng gói kiểm thử `.vsix` qua `npm run package:vsix`.
 - [ ] Task 3.4: Cài đặt và kiểm tra trực tiếp trên VS Code:
   - Tab Providers & Quotas: tìm kiếm, phân loại chip, ghim status bar hoạt động bình thường.
@@ -240,7 +254,7 @@ flowchart TD
 | Check ID | Type | Scope/input | Expected result | Environment/constraint | Maps AC |
 |:---|:---|:---|:---|:---|:---|
 | `T-001` | Static | `npm run compile` | Biên dịch TypeScript & Webpack 0 lỗi, 0 warning | Local Node.js | `AC-1` |
-| `T-002` | Static | Đo lường Lines of Code | `dashboardTemplate.ts` < 150 lines, không file nào > 600 lines | PowerShell measure | `AC-2` |
+| `T-002` | Static | Đo lường Lines of Code | `dashboardTemplate.ts` < 150 lines; các file logic < 450 lines; assets < 950 lines | PowerShell measure | `AC-2` |
 | `T-003` | Integration | Re-export integrity | Mọi import từ `apiClient.ts` trong codebase hoạt động không cần sửa đường dẫn | VS Code Extension Host | `AC-3` |
 | `T-004` | Regression | Tab Providers & Quotas | Hiển thị đầy đủ danh sách tài khoản, ghim status bar, tìm kiếm mượt mà | Webview UI | `AC-4` |
 | `T-005` | Regression | Tab Usage & Analytics | KPI hiển thị đầy đủ, bảng requests phân trang và lọc ngày chính xác | Webview UI | `AC-5` |
@@ -254,9 +268,9 @@ flowchart TD
 
 | Risk | Likelihood | Impact | Mitigation | Detection | Owner |
 |:---|:---|:---|:---|:---|:---|
-| Lỗi thiếu biến scope trong Webview client script khi tách file | Medium | High | Giữ nguyên toàn bộ closure và biến toàn cục trong `dashboardScript.ts` | Webview DevTools Console | JARVIS |
-| Vỡ CSS layout do sai lệch selector hoặc thứ tự nhúng style | Low | Medium | Trích xuất nguyên khối CSS vào `dashboardStyles.ts` không sửa đổi thuộc tính | Visual snapshot check | JARVIS |
-| Circular dependency giữa `apiClient` và các service con | Low | High | `apiClient` chỉ giữ transport primitives (`requestWithAuth`), các service con import từ `apiClient` | Compiler check | JARVIS |
+| Circular Dependency giữa barrel và services con | Low | High | Tách riêng `httpTransport.ts`, luồng import 1 chiều nghiêm ngặt | Webpack build / Madge | JARVIS |
+| Lỗi FOUC (Flash of Unstyled Content) trong Webview | Low | Medium | Nhúng `<style>` trực tiếp trong `<head>`, `<script>` đặt ở đáy `<body>` | Visual Webview inspect | JARVIS |
+| Thiếu scope nội suy trong Client Script | Low | High | Truyền đầy đủ `initialTab` và `preferredFilter` vào `getDashboardScript` | Webview DevTools Console | JARVIS |
 
 ### Phương án Rollback:
 - Do đây là tái cấu trúc thuần túy không đổi tính năng, nếu có bất kỳ lỗi không mong muốn, có thể hoàn tác nhanh về commit `ededdca` qua `git reset --hard ededdca`.
@@ -266,8 +280,8 @@ flowchart TD
 ## 9. Acceptance Criteria
 
 - [ ] **AC-1**: Bản build Webpack `npm run compile` hoàn thành thành công với 0 lỗi cú pháp và 0 lỗi kiểu dữ liệu.
-- [ ] **AC-2**: File `src/views/dashboardTemplate.ts` giảm từ 2,108 dòng xuống dưới 150 dòng; không có file mới nào vượt quá 600 dòng.
-- [ ] **AC-3**: Toàn bộ các consumer của `apiClient.ts` tiếp tục hoạt động bình thường nhờ cơ chế re-export không phá vỡ hợp đồng (Zero Breaking Change).
+- [ ] **AC-2**: File `src/views/dashboardTemplate.ts` giảm từ 2,108 dòng xuống dưới 150 dòng; toàn bộ các file code logic TypeScript đều dưới 450 dòng (các file text asset CSS/JS client dưới 950 dòng).
+- [ ] **AC-3**: Toàn bộ các consumer của `apiClient.ts` tiếp tục hoạt động bình thường nhờ cơ chế Barrel re-export không phá vỡ hợp đồng (Zero Breaking Change).
 - [ ] **AC-4**: Tab Providers & Quotas giữ nguyên 100% giao diện, tìm kiếm, lọc chip và ghim status bar.
 - [ ] **AC-5**: Tab Usage & Analytics giữ nguyên 100% 5 thẻ KPI, bảng requests, date picker, dropdown limit và phân trang.
 - [ ] **AC-6**: Tab Live Console Log giữ nguyên 100% hiển thị log mới nhất ở trên cùng, toolbar điều khiển, date picker tự đổi ngày và phân trang.
