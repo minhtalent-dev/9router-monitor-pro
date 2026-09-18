@@ -47,6 +47,33 @@ export interface DashboardData {
   fetchedAt: Date;
 }
 
+export interface UsageStats {
+  totalRequests: number;
+  totalPromptTokens: number;
+  totalCompletionTokens: number;
+  totalCachedTokens: number;
+  totalCost: number;
+  byProvider?: Record<string, { requests: number; promptTokens: number; completionTokens: number; cost: number }>;
+  byModel?: Record<string, { requests: number; promptTokens: number; completionTokens: number }>;
+}
+
+export interface RequestLogItem {
+  raw: string;
+  timestamp: string;
+  model: string;
+  provider: string;
+  account: string;
+  inTokens: number;
+  outTokens: number;
+  status: string;
+}
+
+export type ConsoleStreamMessage =
+  | { type: 'init'; logs: string[] }
+  | { type: 'line'; line: string }
+  | { type: 'lines'; lines: string[] }
+  | { type: 'clear' };
+
 export interface ExtensionConfig {
   baseUrl: string;
   providersPath: string;
@@ -55,6 +82,7 @@ export interface ExtensionConfig {
   intervalSeconds: number;
   statusDisplayMode: 'compact' | 'detailed' | 'minimal';
   tooltipDisplayMode: 'all' | 'summary' | 'accounts';
+  showLogStatusBar: boolean;
 }
 
 export interface AuthContext {

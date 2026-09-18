@@ -4,9 +4,11 @@ import {
   getCurrentContext,
   getLastDashboard,
   getLastError,
+  getLogStatusBarItem,
   getPinnedAccountIds,
   getPinnedModels,
   getStatusBarItem,
+  setLogStatusBarItem,
   setStatusBarItem
 } from '../services/stateManager';
 import { formatCompact, formatResetCompact } from '../utils/formatters';
@@ -31,6 +33,17 @@ export function initStatusBar(
   setStatusBarItem(statusBarItem);
   context.subscriptions.push(statusBarItem);
   statusBarItem.show();
+
+  const logItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    99
+  );
+  logItem.command = 'aiTokenUsage.openConsoleLog';
+  logItem.text = '$(terminal) 9R Log';
+  logItem.tooltip = 'Click to open 9Router Live Console Log';
+  setLogStatusBarItem(logItem);
+  context.subscriptions.push(logItem);
+
   return statusBarItem;
 }
 
@@ -38,6 +51,15 @@ export function renderStatusBar(
   cfg: ExtensionConfig,
   missingKey = false
 ): void {
+  const logItem = getLogStatusBarItem();
+  if (logItem) {
+    if (cfg.showLogStatusBar !== false) {
+      logItem.show();
+    } else {
+      logItem.hide();
+    }
+  }
+
   const statusBarItem = getStatusBarItem();
   if (!statusBarItem) {
     return;

@@ -164,10 +164,12 @@ export function loginDashboard(baseUrl: string, password: string): Promise<strin
 
 export async function getAuthContext(
   context: vscode.ExtensionContext,
-  baseUrl?: string
+  baseUrlOrConfig?: string | ExtensionConfig
 ): Promise<AuthContext | undefined> {
   const targetBaseUrl =
-    baseUrl ??
+    (typeof baseUrlOrConfig === 'string'
+      ? baseUrlOrConfig
+      : baseUrlOrConfig?.baseUrl) ??
     vscode.workspace
       .getConfiguration('aiTokenUsage')
       .get<string>('apiBaseUrl', 'http://localhost:20128');

@@ -2,7 +2,7 @@
   "name": "9router-monitor-pro",
   "displayName": "9Router Monitor Pro",
   "description": "Track quotas, tokens, and multi-account status of 9Router AI providers directly in the VS Code status bar.",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "publisher": "minhtalent-dev",
   "author": "Minhtalent-dev",
   "license": "MIT",
@@ -74,6 +74,14 @@
       {
         "command": "aiTokenUsage.toggleTooltipMode",
         "title": "9Router Monitor Pro: Toggle Tooltip Detail Mode"
+      },
+      {
+        "command": "aiTokenUsage.openConsoleLog",
+        "title": "9Router Monitor Pro: Open Live Console Log"
+      },
+      {
+        "command": "aiTokenUsage.toggleLogStatusBar",
+        "title": "9Router Monitor Pro: Toggle Console Log Status Bar Item"
       }
     ],
     "configuration": {
@@ -118,6 +126,11 @@
           "enum": ["session", "weekly"],
           "description": "Default quota to display on status bar when no model is pinned."
         },
+        "aiTokenUsage.showLogStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show dedicated $(terminal) 9R Log status bar item to quickly open Console Log."
+        },
         "aiTokenUsage.refreshIntervalSeconds": {
           "type": "number",
           "default": 60,
@@ -142,7 +155,7 @@
     "compile": "webpack",
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
-    "package:vsix": "vsce package --no-dependencies",
+    "package:vsix": "npx @vscode/vsce package --no-dependencies",
     "compile-tsc": "tsc -p ./",
     "lint": "eslint src --ext ts"
   },

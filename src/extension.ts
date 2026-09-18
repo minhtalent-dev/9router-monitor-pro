@@ -68,7 +68,23 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiTokenUsage.toggleTooltipMode', () =>
       toggleTooltipMode(getConfig(), () => refresh(context))
-    )
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.openConsoleLog', () =>
+      showDetails(
+        context,
+        getActiveConfig() ?? getConfig(),
+        (isManual?: boolean) => refresh(context, isManual),
+        'console'
+      )
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.toggleLogStatusBar', async () => {
+      const cfg = vscode.workspace.getConfiguration('aiTokenUsage');
+      const current = cfg.get<boolean>('showLogStatusBar', true);
+      await cfg.update('showLogStatusBar', !current, vscode.ConfigurationTarget.Global);
+      vscode.window.showInformationMessage(
+        `9Router Console Log Status Bar item: ${!current ? 'Enabled' : 'Disabled'}`
+      );
+    })
   );
 
   context.subscriptions.push(
@@ -127,7 +143,8 @@ export function getConfig(): ExtensionConfig {
     intervalSeconds: Math.max(
       10,
       cfg.get<number>('refreshIntervalSeconds', 60)
-    )
+    ),
+    showLogStatusBar: cfg.get<boolean>('showLogStatusBar', true)
   };
   setActiveConfig(fresh);
   return fresh;

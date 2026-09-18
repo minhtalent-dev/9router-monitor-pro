@@ -26,7 +26,8 @@ export function getWebviewContent(
   context: vscode.ExtensionContext,
   cfg: ExtensionConfig,
   pinnedAccountIds = getPinnedAccountIds(context),
-  pinnedModels = getPinnedModels(context)
+  pinnedModels = getPinnedModels(context),
+  initialTab: 'providers' | 'analytics' | 'console' = 'providers'
 ): string {
   const hiddenModels = getHiddenModels(context);
   const preferredSort = getPreferredSort(context);
@@ -786,6 +787,226 @@ export function getWebviewContent(
     border: 1px solid #5a4400;
     color: var(--yellow);
   }
+
+  /* Tabs Navigation */
+  .tabs-header {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 8px;
+  }
+  .tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text-muted);
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab-btn:hover {
+    background: var(--card-bg);
+    color: var(--text);
+  }
+  .tab-btn.active {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+    border-bottom: 2px solid var(--blue);
+    color: var(--text);
+    font-weight: 600;
+  }
+  .tab-content {
+    transition: opacity 0.15s ease;
+  }
+
+  /* Usage & Analytics Tab */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .kpi-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .kpi-card:hover {
+    border-color: #58a6ff;
+  }
+  .kpi-title {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .kpi-icon {
+    font-size: 14px;
+  }
+  .kpi-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .analytics-box {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .analytics-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .analytics-title {
+    display: flex;
+    align-items: center;
+  }
+  .table-container {
+    overflow-x: auto;
+  }
+  .analytics-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .analytics-table th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .analytics-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #21262d;
+    color: var(--text);
+  }
+  .analytics-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 24px;
+    font-style: italic;
+  }
+  .status-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-block;
+  }
+  .status-badge.success {
+    background: #0d2818;
+    color: var(--green);
+    border: 1px solid #1b4721;
+  }
+  .status-badge.error {
+    background: #2d1111;
+    color: var(--red);
+    border: 1px solid #5a1e1e;
+  }
+
+  /* Live Console Log Tab */
+  .console-toolbar {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .console-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+  .console-filter-box {
+    flex: 1;
+    min-width: 200px;
+  }
+  .console-filter-box input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+  .console-filter-box input:focus {
+    border-color: var(--blue);
+  }
+  .btn-sm {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .btn-danger {
+    border-color: #5a1e1e;
+    color: var(--red);
+  }
+  .btn-danger:hover {
+    background: #2d1111;
+    border-color: var(--red);
+  }
+  .terminal-box {
+    font-family: Consolas, "SF Mono", Monaco, "Courier New", monospace;
+    background: #0d1117;
+    border: 1px solid var(--card-border);
+    padding: 12px;
+    border-radius: 6px;
+    max-height: 600px;
+    height: 520px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.45;
+    font-size: 12px;
+    color: #c9d1d9;
+  }
+  .terminal-line {
+    display: block;
+    margin-bottom: 1px;
+    min-height: 18px;
+  }
+  .log-done { color: #3fb950; font-weight: 500; }
+  .log-post { color: #58a6ff; font-weight: 500; }
+  .log-refresh { color: #d2a8ff; font-weight: 500; }
+  .log-warn { color: #d29922; font-weight: 500; }
+  .log-error { color: #f85149; font-weight: 600; }
+  .log-default { color: #c9d1d9; }
 </style>
 </head>
 <body>
@@ -804,76 +1025,161 @@ export function getWebviewContent(
     </div>
   </div>
 
-  <div class="toolbar">
-    <div class="toolbar-row-top">
-      <div class="search-box">
-        <input type="text" id="searchInput" placeholder="🔍 Search model... (e.g. gemini, claude, sonnet, 3.8)">
+  <div class="tabs-header">
+    <button class="tab-btn ${initialTab === 'providers' ? 'active' : ''}" data-tab="providers">📊 Providers & Quotas</button>
+    <button class="tab-btn ${initialTab === 'analytics' ? 'active' : ''}" data-tab="analytics">📈 Usage & Analytics</button>
+    <button class="tab-btn ${initialTab === 'console' ? 'active' : ''}" data-tab="console">🖥️ Live Console Log</button>
+  </div>
+
+  <!-- Tab 1: Providers & Quotas -->
+  <div id="tab-providers" class="tab-content" style="display: ${initialTab === 'providers' ? 'block' : 'none'};">
+    <div class="toolbar">
+      <div class="toolbar-row-top">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="🔍 Search model... (e.g. gemini, claude, sonnet, 3.8)">
+        </div>
+        <div class="sort-box">
+          <select id="sortSelect">
+            <option value="used_desc"${preferredSort === 'used_desc' ? ' selected' : ''}>Sort: Highest Usage (% desc)</option>
+            <option value="used_asc"${preferredSort === 'used_asc' ? ' selected' : ''}>Sort: Lowest Usage (% asc)</option>
+            <option value="remaining_desc"${preferredSort === 'remaining_desc' ? ' selected' : ''}>Sort: Most Remaining Quota</option>
+            <option value="name_asc"${preferredSort === 'name_asc' ? ' selected' : ''}>Sort: Model Name (A → Z)</option>
+            <option value="provider_asc"${preferredSort === 'provider_asc' ? ' selected' : ''}>Sort: Provider (A → Z)</option>
+            <option value="account_asc"${preferredSort === 'account_asc' ? ' selected' : ''}>Sort: Account Name (A → Z)</option>
+            <option value="reset_asc"${preferredSort === 'reset_asc' ? ' selected' : ''}>Sort: Nearest Reset Time</option>
+          </select>
+        </div>
       </div>
-      <div class="sort-box">
-        <select id="sortSelect">
-          <option value="used_desc"${preferredSort === 'used_desc' ? ' selected' : ''}>Sort: Highest Usage (% desc)</option>
-          <option value="used_asc"${preferredSort === 'used_asc' ? ' selected' : ''}>Sort: Lowest Usage (% asc)</option>
-          <option value="remaining_desc"${preferredSort === 'remaining_desc' ? ' selected' : ''}>Sort: Most Remaining Quota</option>
-          <option value="name_asc"${preferredSort === 'name_asc' ? ' selected' : ''}>Sort: Model Name (A → Z)</option>
-          <option value="provider_asc"${preferredSort === 'provider_asc' ? ' selected' : ''}>Sort: Provider (A → Z)</option>
-          <option value="account_asc"${preferredSort === 'account_asc' ? ' selected' : ''}>Sort: Account Name (A → Z)</option>
-          <option value="reset_asc"${preferredSort === 'reset_asc' ? ' selected' : ''}>Sort: Nearest Reset Time</option>
-        </select>
+      <div class="toolbar-row-bottom">
+        <div class="filter-chips">
+          <button class="filter-chip${preferredFilter === 'all' ? ' active' : ''}" data-filter="all">All</button>
+          <button class="filter-chip${preferredFilter === 'active' ? ' active' : ''}" data-filter="active">In Use (>0%)</button>
+          <button class="filter-chip${preferredFilter === 'claude' ? ' active' : ''}" data-filter="claude">Claude</button>
+          <button class="filter-chip${preferredFilter === 'gemini' ? ' active' : ''}" data-filter="gemini">Gemini</button>
+          <button class="filter-chip${preferredFilter === 'other' ? ' active' : ''}" data-filter="other">Other</button>
+          ${uniqueProviders
+            .map((p) => {
+              const fKey = 'provider:' + p.toLowerCase();
+              const isActive = preferredFilter === fKey;
+              return `<button class="filter-chip${
+                isActive ? ' active' : ''
+              }" data-filter="${escHtml(fKey)}">${escHtml(p)}</button>`;
+            })
+            .join('\n          ')}
+        </div>
+        <label class="show-hidden-toggle">
+          <input type="checkbox" id="showHiddenCheck"> 👁️ Show hidden models
+        </label>
+      </div>
+      <div class="toolbar-row-settings">
+        <div class="setting-item">
+          <label for="statusStyleSelect">📊 Status Bar:</label>
+          <select id="statusStyleSelect">
+            <option value="compact"${(cfg.statusDisplayMode ?? 'compact') === 'compact' ? ' selected' : ''}>Compact (Balanced)</option>
+            <option value="detailed"${cfg.statusDisplayMode === 'detailed' ? ' selected' : ''}>Detailed (Full ratio + reset)</option>
+            <option value="minimal"${cfg.statusDisplayMode === 'minimal' ? ' selected' : ''}>Minimal (Numbers only)</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label for="tooltipStyleSelect">📋 Tooltip Detail:</label>
+          <select id="tooltipStyleSelect">
+            <option value="all"${(cfg.tooltipDisplayMode ?? 'all') === 'all' ? ' selected' : ''}>All (Summary + Accounts)</option>
+            <option value="summary"${cfg.tooltipDisplayMode === 'summary' ? ' selected' : ''}>Aggregate Summary Only (Compact)</option>
+            <option value="accounts"${cfg.tooltipDisplayMode === 'accounts' ? ' selected' : ''}>Account List Only</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <label for="refreshIntervalSelect">⏱️ Auto-Refresh:</label>
+          <select id="refreshIntervalSelect">
+            <option value="15"${cfg.intervalSeconds === 15 ? ' selected' : ''}>15 seconds</option>
+            <option value="30"${cfg.intervalSeconds === 30 ? ' selected' : ''}>30 seconds</option>
+            <option value="60"${cfg.intervalSeconds === 60 ? ' selected' : ''}>60 seconds (Default)</option>
+            <option value="120"${cfg.intervalSeconds === 120 ? ' selected' : ''}>2 minutes</option>
+            <option value="300"${cfg.intervalSeconds === 300 ? ' selected' : ''}>5 minutes</option>
+          </select>
+        </div>
       </div>
     </div>
-    <div class="toolbar-row-bottom">
-      <div class="filter-chips">
-        <button class="filter-chip${preferredFilter === 'all' ? ' active' : ''}" data-filter="all">All</button>
-        <button class="filter-chip${preferredFilter === 'active' ? ' active' : ''}" data-filter="active">In Use (>0%)</button>
-        <button class="filter-chip${preferredFilter === 'claude' ? ' active' : ''}" data-filter="claude">Claude</button>
-        <button class="filter-chip${preferredFilter === 'gemini' ? ' active' : ''}" data-filter="gemini">Gemini</button>
-        <button class="filter-chip${preferredFilter === 'other' ? ' active' : ''}" data-filter="other">Other</button>
-        ${uniqueProviders
-          .map((p) => {
-            const fKey = 'provider:' + p.toLowerCase();
-            const isActive = preferredFilter === fKey;
-            return `<button class="filter-chip${
-              isActive ? ' active' : ''
-            }" data-filter="${escHtml(fKey)}">${escHtml(p)}</button>`;
-          })
-          .join('\n        ')}
-      </div>
-      <label class="show-hidden-toggle">
-        <input type="checkbox" id="showHiddenCheck"> 👁️ Show hidden models
-      </label>
+
+    <div id="sectionsContainer">
+      ${sectionsHtml}
     </div>
-    <div class="toolbar-row-settings">
-      <div class="setting-item">
-        <label for="statusStyleSelect">📊 Status Bar:</label>
-        <select id="statusStyleSelect">
-          <option value="compact"${(cfg.statusDisplayMode ?? 'compact') === 'compact' ? ' selected' : ''}>Compact (Balanced)</option>
-          <option value="detailed"${cfg.statusDisplayMode === 'detailed' ? ' selected' : ''}>Detailed (Full ratio + reset)</option>
-          <option value="minimal"${cfg.statusDisplayMode === 'minimal' ? ' selected' : ''}>Minimal (Numbers only)</option>
-        </select>
+  </div>
+
+  <!-- Tab 2: Usage & Analytics -->
+  <div id="tab-analytics" class="tab-content" style="display: ${initialTab === 'analytics' ? 'block' : 'none'};">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-title">Total Requests <span class="kpi-icon">🔢</span></div>
+        <div class="kpi-value" id="kpi-requests">0</div>
+        <div class="kpi-desc">All-time routed requests</div>
       </div>
-      <div class="setting-item">
-        <label for="tooltipStyleSelect">📋 Tooltip Detail:</label>
-        <select id="tooltipStyleSelect">
-          <option value="all"${(cfg.tooltipDisplayMode ?? 'all') === 'all' ? ' selected' : ''}>All (Summary + Accounts)</option>
-          <option value="summary"${cfg.tooltipDisplayMode === 'summary' ? ' selected' : ''}>Aggregate Summary Only (Compact)</option>
-          <option value="accounts"${cfg.tooltipDisplayMode === 'accounts' ? ' selected' : ''}>Account List Only</option>
-        </select>
+      <div class="kpi-card">
+        <div class="kpi-title">Prompt Tokens (In) <span class="kpi-icon">📥</span></div>
+        <div class="kpi-value" id="kpi-in-tokens">0</div>
+        <div class="kpi-desc">Input context tokens</div>
       </div>
-      <div class="setting-item">
-        <label for="refreshIntervalSelect">⏱️ Auto-Refresh:</label>
-        <select id="refreshIntervalSelect">
-          <option value="15"${cfg.intervalSeconds === 15 ? ' selected' : ''}>15 seconds</option>
-          <option value="30"${cfg.intervalSeconds === 30 ? ' selected' : ''}>30 seconds</option>
-          <option value="60"${cfg.intervalSeconds === 60 ? ' selected' : ''}>60 seconds (Default)</option>
-          <option value="120"${cfg.intervalSeconds === 120 ? ' selected' : ''}>2 minutes</option>
-          <option value="300"${cfg.intervalSeconds === 300 ? ' selected' : ''}>5 minutes</option>
-        </select>
+      <div class="kpi-card">
+        <div class="kpi-title">Cached Tokens <span class="kpi-icon">⚡</span></div>
+        <div class="kpi-value" id="kpi-cached-tokens">0</div>
+        <div class="kpi-desc">Prompt cache hits</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Completion Tokens (Out) <span class="kpi-icon">📤</span></div>
+        <div class="kpi-value" id="kpi-out-tokens">0</div>
+        <div class="kpi-desc">Generated output tokens</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Est. Cost <span class="kpi-icon">💵</span></div>
+        <div class="kpi-value" id="kpi-cost">$0.0000</div>
+        <div class="kpi-desc">Estimated USD expense</div>
+      </div>
+    </div>
+
+    <div class="analytics-box">
+      <div class="analytics-header">
+        <div class="analytics-title">
+          <span style="font-size: 15px; font-weight: 600;">🕒 Recent Requests</span>
+          <span style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">Last 20 transactions</span>
+        </div>
+        <button id="btnRefreshAnalytics" class="btn btn-sm">⟳ Refresh Analytics</button>
+      </div>
+      <div class="table-container">
+        <table class="analytics-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Model</th>
+              <th>Provider</th>
+              <th>Account</th>
+              <th>Input / Output</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="analyticsTableBody">
+            <tr>
+              <td colspan="6" class="analytics-empty">Click 'Refresh Analytics' to load data...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 
-  <div id="sectionsContainer">
-    ${sectionsHtml}
+  <!-- Tab 3: Live Console Log -->
+  <div id="tab-console" class="tab-content" style="display: ${initialTab === 'console' ? 'block' : 'none'};">
+    <div class="console-toolbar">
+      <button id="btnPause" class="btn btn-sm">⏸ Pause</button>
+      <button id="btnClearLogs" class="btn btn-sm btn-danger">🗑️ Clear</button>
+      <label class="console-label">
+        <input type="checkbox" id="chkAutoScroll" checked /> Auto-scroll
+      </label>
+      <div class="console-filter-box">
+        <input type="text" id="txtLogFilter" placeholder="Filter logs (e.g. gpt-4, DONE, error)..." class="search-input" />
+      </div>
+      <span id="logCountBadge" class="badge">0 logs</span>
+    </div>
+    <div id="terminalContainer" class="terminal-box"></div>
   </div>
 
   <script>
@@ -883,6 +1189,238 @@ export function getWebviewContent(
     const sortSelect = document.getElementById('sortSelect');
     const showHiddenCheck = document.getElementById('showHiddenCheck');
     const chips = document.querySelectorAll('.filter-chip');
+
+    // Tab state & DOM elements
+    let activeTab = '${initialTab}';
+    let isPaused = false;
+    let allLogLines = [];
+    const maxLogs = 500;
+
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabProviders = document.getElementById('tab-providers');
+    const tabAnalytics = document.getElementById('tab-analytics');
+    const tabConsole = document.getElementById('tab-console');
+
+    const terminalContainer = document.getElementById('terminalContainer');
+    const btnPause = document.getElementById('btnPause');
+    const btnClearLogs = document.getElementById('btnClearLogs');
+    const chkAutoScroll = document.getElementById('chkAutoScroll');
+    const txtLogFilter = document.getElementById('txtLogFilter');
+    const logCountBadge = document.getElementById('logCountBadge');
+    const btnRefreshAnalytics = document.getElementById('btnRefreshAnalytics');
+
+    function switchTab(newTab) {
+      if (activeTab === newTab) return;
+      const prevTab = activeTab;
+      activeTab = newTab;
+
+      tabBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === activeTab);
+      });
+
+      if (tabProviders) tabProviders.style.display = activeTab === 'providers' ? 'block' : 'none';
+      if (tabAnalytics) tabAnalytics.style.display = activeTab === 'analytics' ? 'block' : 'none';
+      if (tabConsole) tabConsole.style.display = activeTab === 'console' ? 'block' : 'none';
+
+      if (prevTab === 'console' && activeTab !== 'console') {
+        vscode.postMessage({ command: 'stopConsoleStream' });
+      }
+
+      if (activeTab === 'console') {
+        vscode.postMessage({ command: 'startConsoleStream' });
+        if (chkAutoScroll && chkAutoScroll.checked && !isPaused && terminalContainer) {
+          terminalContainer.scrollTop = terminalContainer.scrollHeight;
+        }
+      } else if (activeTab === 'analytics') {
+        vscode.postMessage({ command: 'fetchAnalytics' });
+      }
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchTab(btn.dataset.tab);
+      });
+    });
+
+    if (activeTab === 'console') {
+      vscode.postMessage({ command: 'startConsoleStream' });
+    } else if (activeTab === 'analytics') {
+      vscode.postMessage({ command: 'fetchAnalytics' });
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatCompactNum(num) {
+      const n = Number(num) || 0;
+      if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+      if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+      return String(n);
+    }
+
+    function formatLogLine(text) {
+      const escaped = escapeHtml(text);
+      if (text.includes('DONE ')) {
+        return '<span class="log-done">' + escaped + '</span>';
+      } else if (text.includes('POST ')) {
+        return '<span class="log-post">' + escaped + '</span>';
+      } else if (text.includes('[TOKEN_REFRESH]')) {
+        return '<span class="log-refresh">' + escaped + '</span>';
+      } else if (text.includes('[WARN]') || text.includes('[HEADROOM]')) {
+        return '<span class="log-warn">' + escaped + '</span>';
+      } else if (text.includes('[ERROR]') || text.includes('ERR')) {
+        return '<span class="log-error">' + escaped + '</span>';
+      }
+      return '<span class="log-default">' + escaped + '</span>';
+    }
+
+    function renderLogs() {
+      if (!terminalContainer) return;
+      const filter = (txtLogFilter ? txtLogFilter.value : '').trim().toLowerCase();
+      let filtered = allLogLines;
+      if (filter) {
+        filtered = allLogLines.filter(l => l.toLowerCase().includes(filter));
+      }
+      if (logCountBadge) {
+        logCountBadge.textContent = filtered.length + ' logs';
+      }
+      terminalContainer.innerHTML = filtered.map(l => '<div class="terminal-line">' + formatLogLine(l) + '</div>').join('');
+      if (chkAutoScroll && chkAutoScroll.checked && !isPaused) {
+        terminalContainer.scrollTop = terminalContainer.scrollHeight;
+      }
+    }
+
+    function appendSingleLog(line) {
+      if (!terminalContainer) return;
+      const filter = (txtLogFilter ? txtLogFilter.value : '').trim().toLowerCase();
+      const match = !filter || line.toLowerCase().includes(filter);
+      if (match) {
+        const div = document.createElement('div');
+        div.className = 'terminal-line';
+        div.innerHTML = formatLogLine(line);
+        terminalContainer.appendChild(div);
+        if (chkAutoScroll && chkAutoScroll.checked && !isPaused) {
+          terminalContainer.scrollTop = terminalContainer.scrollHeight;
+        }
+      }
+      while (terminalContainer.children.length > maxLogs) {
+        terminalContainer.removeChild(terminalContainer.firstChild);
+      }
+      if (logCountBadge) {
+        const count = filter ? terminalContainer.children.length : allLogLines.length;
+        logCountBadge.textContent = count + ' logs';
+      }
+    }
+
+    if (btnPause) {
+      btnPause.addEventListener('click', () => {
+        isPaused = !isPaused;
+        btnPause.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+        btnPause.classList.toggle('btn-primary', isPaused);
+      });
+    }
+
+    if (btnClearLogs) {
+      btnClearLogs.addEventListener('click', () => {
+        allLogLines = [];
+        renderLogs();
+        vscode.postMessage({ command: 'clearConsoleLogs' });
+      });
+    }
+
+    if (txtLogFilter) {
+      txtLogFilter.addEventListener('input', () => {
+        renderLogs();
+      });
+    }
+
+    if (btnRefreshAnalytics) {
+      btnRefreshAnalytics.addEventListener('click', () => {
+        btnRefreshAnalytics.disabled = true;
+        btnRefreshAnalytics.textContent = '⟳ Loading...';
+        vscode.postMessage({ command: 'fetchAnalytics' });
+      });
+    }
+
+    window.addEventListener('message', event => {
+      const message = event.data;
+      if (!message) return;
+
+      if (message.command === 'switchTab' && message.tab) {
+        switchTab(message.tab);
+      } else if (message.command === 'consoleLogEvent' && message.event) {
+        const ev = message.event;
+        if (ev.type === 'init') {
+          allLogLines = (ev.logs || []).slice(-maxLogs);
+          renderLogs();
+        } else if (ev.type === 'line') {
+          if (!isPaused && typeof ev.line === 'string') {
+            allLogLines.push(ev.line);
+            if (allLogLines.length > maxLogs) allLogLines.shift();
+            appendSingleLog(ev.line);
+          }
+        } else if (ev.type === 'lines') {
+          if (!isPaused && Array.isArray(ev.lines)) {
+            ev.lines.forEach(l => {
+              allLogLines.push(l);
+              if (allLogLines.length > maxLogs) allLogLines.shift();
+            });
+            renderLogs();
+          }
+        } else if (ev.type === 'clear') {
+          allLogLines = [];
+          renderLogs();
+        }
+      } else if (message.command === 'analyticsData') {
+        if (btnRefreshAnalytics) {
+          btnRefreshAnalytics.disabled = false;
+          btnRefreshAnalytics.textContent = '⟳ Refresh Analytics';
+        }
+        if (message.stats) {
+          const s = message.stats;
+          const kpiReq = document.getElementById('kpi-requests');
+          const kpiIn = document.getElementById('kpi-in-tokens');
+          const kpiCached = document.getElementById('kpi-cached-tokens');
+          const kpiOut = document.getElementById('kpi-out-tokens');
+          const kpiCost = document.getElementById('kpi-cost');
+
+          if (kpiReq) kpiReq.textContent = Number(s.totalRequests || 0).toLocaleString();
+          if (kpiIn) kpiIn.textContent = formatCompactNum(s.totalPromptTokens || 0);
+          if (kpiCached) kpiCached.textContent = formatCompactNum(s.totalCachedTokens || 0);
+          if (kpiOut) kpiOut.textContent = formatCompactNum(s.totalCompletionTokens || 0);
+          if (kpiCost) kpiCost.textContent = '$' + Number(s.totalCost || 0).toFixed(4);
+        }
+        if (Array.isArray(message.logs)) {
+          const tbody = document.getElementById('analyticsTableBody');
+          if (tbody) {
+            if (message.logs.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="6" class="analytics-empty">No recent requests recorded.</td></tr>';
+            } else {
+              tbody.innerHTML = message.logs.map(log => {
+                const statusStr = String(log.status || '');
+                const isSuccess = statusStr.startsWith('2') || statusStr.toLowerCase() === 'ok';
+                const statusClass = isSuccess ? 'success' : 'error';
+                return '<tr>' +
+                  '<td>' + escapeHtml(log.timestamp || '') + '</td>' +
+                  '<td><strong>' + escapeHtml(log.model || '') + '</strong></td>' +
+                  '<td><span class="badge provider">' + escapeHtml(log.provider || '') + '</span></td>' +
+                  '<td>' + escapeHtml(log.account || '') + '</td>' +
+                  '<td>' + formatCompactNum(log.inTokens || 0) + ' / ' + formatCompactNum(log.outTokens || 0) + '</td>' +
+                  '<td><span class="status-badge ' + statusClass + '">' + escapeHtml(statusStr) + '</span></td>' +
+                '</tr>';
+              }).join('');
+            }
+          }
+        }
+      }
+    });
 
     document.getElementById('refreshBtn').addEventListener('click', () => {
       const btn = document.getElementById('refreshBtn');

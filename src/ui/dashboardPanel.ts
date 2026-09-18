@@ -7,7 +7,13 @@ import {
   SECRET_PASSWORD,
   SECRET_SESSION_TOKEN
 } from '../services/authManager';
-import { updateProviderActive } from '../services/apiClient';
+import {
+  clearServerConsoleLogs,
+  fetchRequestLogs,
+  fetchUsageStats,
+  openConsoleLogStream,
+  updateProviderActive
+} from '../services/apiClient';
 import {
   getDetailsPanel,
   getHiddenModels,
@@ -27,6 +33,8 @@ import { getWebviewContent } from '../views/dashboardTemplate';
 import { renderStatusBar } from './statusBar';
 import { setConnection } from './quickMenu';
 
+let activeLogStreamAbort: (() => void) | undefined;
+
 export function syncDashboardWebview(
   context: vscode.ExtensionContext,
   cfg: ExtensionConfig
@@ -41,7 +49,8 @@ export function syncDashboardWebview(
 export async function showDetails(
   context: vscode.ExtensionContext,
   cfg: ExtensionConfig,
-  onRefresh: (isManual?: boolean) => Promise<void>
+  onRefresh: (isManual?: boolean) => Promise<void> | void,
+  initialTab?: 'providers' | 'analytics' | 'console'
 ): Promise<void> {
   const password = await context.secrets.get(SECRET_PASSWORD);
   const sessionToken = await context.secrets.get(SECRET_SESSION_TOKEN);
@@ -54,7 +63,7 @@ export async function showDetails(
       'Configure Now'
     );
     if (pick === 'Configure Now') {
-      await setConnection(context, () => onRefresh(true));
+      await setConnection(context, () => Promise.resolve(onRefresh(true)));
     }
     return;
   }
@@ -75,7 +84,7 @@ export async function showDetails(
     if (pick === 'Retry') {
       await onRefresh(true);
     } else if (pick === 'Change Connection') {
-      await setConnection(context, () => onRefresh(true));
+      await setConnection(context, () => Promise.resolve(onRefresh(true)));
     }
     return;
   }
@@ -86,19 +95,28 @@ export async function showDetails(
 
   let detailsPanel = getDetailsPanel();
   if (detailsPanel) {
-    detailsPanel.webview.html = getWebviewContent(dashboard, context, cfg);
-    detailsPanel.reveal(vscode.ViewColumn.One);
+    detailsPanel.reveal(vscode.ViewColumn.Beside);
+    if (initialTab) {
+      detailsPanel.webview.postMessage({ command: 'switchTab', tab: initialTab });
+    }
     return;
   }
 
   detailsPanel = vscode.window.createWebviewPanel(
     'aiTokenUsage.dashboard',
     '9Router Monitor Pro',
-    vscode.ViewColumn.One,
+    vscode.ViewColumn.Beside,
     { enableScripts: true, retainContextWhenHidden: true }
   );
   setDetailsPanel(detailsPanel);
-  detailsPanel.webview.html = getWebviewContent(dashboard, context, cfg);
+  detailsPanel.webview.html = getWebviewContent(
+    dashboard,
+    context,
+    cfg,
+    undefined,
+    undefined,
+    initialTab
+  );
 
   detailsPanel.webview.onDidReceiveMessage(
     async (msg: {
@@ -118,7 +136,7 @@ export async function showDetails(
         await onRefresh(true);
         syncDashboardWebview(context, cfg);
       } else if (msg.command === 'setConnection') {
-        await setConnection(context, () => onRefresh(true));
+        await setConnection(context, () => Promise.resolve(onRefresh(true)));
         syncDashboardWebview(context, cfg);
       } else if (
         (msg.command === 'togglePinAccount' || msg.command === 'pinAccount') &&
@@ -256,6 +274,50 @@ export async function showDetails(
         vscode.window.showInformationMessage(
           `[9Router Pro] Auto-refresh interval set to ${msg.intervalSeconds}s.`
         );
+      } else if (msg.command === 'startConsoleStream') {
+        if (activeLogStreamAbort) {
+          activeLogStreamAbort();
+          activeLogStreamAbort = undefined;
+        }
+        const auth = await getAuthContext(context, cfg);
+        if (auth) {
+          activeLogStreamAbort = openConsoleLogStream(
+            cfg,
+            auth,
+            (event) => {
+              detailsPanel?.webview.postMessage({
+                command: 'consoleLogEvent',
+                event
+              });
+            },
+            (err) => {
+              console.error('Console stream error:', err);
+            }
+          );
+        }
+      } else if (msg.command === 'stopConsoleStream') {
+        if (activeLogStreamAbort) {
+          activeLogStreamAbort();
+          activeLogStreamAbort = undefined;
+        }
+      } else if (msg.command === 'clearConsoleLogs') {
+        const auth = await getAuthContext(context, cfg);
+        if (auth) {
+          await clearServerConsoleLogs(cfg, auth);
+        }
+      } else if (msg.command === 'fetchAnalytics') {
+        const auth = await getAuthContext(context, cfg);
+        if (auth) {
+          const [stats, logs] = await Promise.all([
+            fetchUsageStats(cfg, auth),
+            fetchRequestLogs(cfg, auth, 1, 20)
+          ]);
+          detailsPanel?.webview.postMessage({
+            command: 'analyticsData',
+            stats,
+            logs
+          });
+        }
       }
     },
     undefined,
@@ -264,7 +326,12 @@ export async function showDetails(
 
   detailsPanel.onDidDispose(
     () => {
+      if (activeLogStreamAbort) {
+        activeLogStreamAbort();
+        activeLogStreamAbort = undefined;
+      }
       setDetailsPanel(undefined);
+      detailsPanel = undefined;
     },
     undefined,
     context.subscriptions

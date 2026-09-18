@@ -5,6 +5,7 @@ let currentContext: vscode.ExtensionContext | undefined;
 let lastDashboard: DashboardData | undefined;
 let lastError: string | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
+let logStatusBarItem: vscode.StatusBarItem | undefined;
 let detailsPanel: vscode.WebviewPanel | undefined;
 let activeConfig: ExtensionConfig | undefined;
 
@@ -46,6 +47,14 @@ export function getStatusBarItem(): vscode.StatusBarItem | undefined {
 
 export function setStatusBarItem(item: vscode.StatusBarItem | undefined): void {
   statusBarItem = item;
+}
+
+export function getLogStatusBarItem(): vscode.StatusBarItem | undefined {
+  return logStatusBarItem;
+}
+
+export function setLogStatusBarItem(item: vscode.StatusBarItem | undefined): void {
+  logStatusBarItem = item;
 }
 
 export function getDetailsPanel(): vscode.WebviewPanel | undefined {

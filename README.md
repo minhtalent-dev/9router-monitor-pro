@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/minhtalent-dev/9router-monitor-pro/releases"><img src="https://img.shields.io/badge/version-1.0.3-blue.svg" alt="Version 1.0.3" /></a>
+  <a href="https://github.com/minhtalent-dev/9router-monitor-pro/releases"><img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version 1.1.0" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://code.visualstudio.com/"><img src="https://img.shields.io/badge/VS%20Code-%3E%3D%201.85.0-007ACC.svg" alt="VS Code Compatibility" /></a>
   <a href="https://github.com/minhtalent-dev/9router-monitor-pro"><img src="https://img.shields.io/badge/platform-VS%20Code%20%7C%20Antigravity%20%7C%20Cursor%20%7C%20Windsurf-orange.svg" alt="Supported IDEs" /></a>
@@ -23,13 +23,19 @@
 
 ## 📸 Visual Showcase & Feature Tour
 
-### 1. Interactive Webview Dashboard Pro Max
-A clean, high-performance Fluent Dark Theme grid matrix that gives you an immediate overview of all AI providers connected to 9Router. Features realtime keyword search, dynamic category filter chips (`Antigravity`, `Gemini`, `Claude`, `Codex`, etc.), multi-criteria sorting, and one-click pin/hide/active controls.
+### 1. Interactive Webview Dashboard Pro Max (3-Tab Command Center)
+A comprehensive control center with seamless tabbed navigation:
+- **📊 Providers & Quotas**: High-performance Fluent Dark Theme grid matrix that gives you an immediate overview of all AI providers connected to 9Router. Features realtime keyword search, dynamic category filter chips (`Antigravity`, `Gemini`, `Claude`, `Codex`, etc.), multi-criteria sorting, and one-click pin/hide/active controls.
+- **📈 Usage & Analytics**: Real-time aggregated monitoring with 5 KPI cards (Total Requests, Prompt Tokens, Cached Tokens, Completion Tokens, Est. Cost) and a live historical table of the 20 most recent requests with status badges.
+- **🖥️ Live Console Log**: Stream server logs in real time over Server-Sent Events (SSE) directly into an embedded Fluent dark terminal. Features Pause/Resume, Server Clear sync, Auto-scroll, text search/filter, and syntax highlighting (`DONE`, `POST`, `TOKEN_REFRESH`, `WARN`, `ERROR`).
+- **🔄 Zero State Loss**: Switching between tabs uses CSS display toggling to preserve 100% of the terminal log buffer, scroll position, and search filter state without reloading.
 
 ![9Router Monitor Pro Webview Dashboard](media/screenshot-dashboard.png)
 
-### 2. Multi-Account Status Bar Aggregation & Detailed Tooltip
-Never crowd your status bar. When pinning multiple accounts, 9Router Monitor Pro automatically sums up the remaining balances and total quotas into a single condensed metric (`10 ⭐ · G3.8 9.9K · GW 8.6K`). Hovering over the metric reveals a high-density Markdown inspection table with per-account breakdowns, usage percentages, and reset countdowns.
+### 2. Multi-Account Status Bar Aggregation & Dedicated Log Widget
+Never crowd your status bar. 9Router Monitor Pro provides two complementary status bar indicators:
+- **Main Quota Widget**: When pinning multiple accounts, automatically sums up remaining balances and total quotas into a single condensed metric (`10 ⭐ · G3.8 9.9K · GW 8.6K`). Hovering reveals a high-density Markdown inspection table with per-account breakdowns, usage percentages, and reset countdowns.
+- **⚡ Dedicated Log Widget (`$(terminal) 9R Log`)**: An independent status bar shortcut placed right next to the main quota widget. 1-click opens directly into the Live Console Log tab. Can be toggled on/off at any time via `aiTokenUsage.showLogStatusBar` or Quick Menu.
 
 ![Status Bar Aggregation & Details Tooltip](media/screenshot-status.png)
 
@@ -99,17 +105,17 @@ You can switch display styles at any time via **Quick Menu -> Status Bar Display
 #### Method 1: Install via CLI (Recommended)
 ```powershell
 # For Antigravity
-antigravity --install-extension 9router-monitor-pro-1.0.1.vsix --force
+antigravity --install-extension 9router-monitor-pro-1.1.0.vsix --force
 
 # For Cursor
-cursor --install-extension 9router-monitor-pro-1.0.1.vsix --force
+cursor --install-extension 9router-monitor-pro-1.1.0.vsix --force
 
 # For VS Code
-code --install-extension 9router-monitor-pro-1.0.1.vsix --force
+code --install-extension 9router-monitor-pro-1.1.0.vsix --force
 ```
 
 #### Method 2: Install from VSIX in GUI
-1. Download `9router-monitor-pro-1.0.1.vsix` from [GitHub Releases](https://github.com/minhtalent-dev/9router-monitor-pro/releases).
+1. Download `9router-monitor-pro-1.1.0.vsix` from [GitHub Releases](https://github.com/minhtalent-dev/9router-monitor-pro/releases).
 2. In your IDE, open the Extensions view (`Ctrl+Shift+X`).
 3. Click the `...` menu (Views and More Actions) at the top right of the Extensions panel.
 4. Select **Install from VSIX...** and choose the downloaded file.
@@ -124,6 +130,8 @@ All commands are prefixed with `9Router Monitor Pro` in the Command Palette (`Ct
 |:---|:---|:---|
 | `aiTokenUsage.openQuickMenu` | `Open Interactive Menu` | Open interactive popup menu to pin accounts, pin models, toggle status, and change settings |
 | `aiTokenUsage.showDetails` | `Show Dashboard` | Open the full Webview Dashboard with search, filters, and cards |
+| `aiTokenUsage.openConsoleLog` | `Open Live Console Log` | Open Webview Dashboard directly at the Live Console Log tab |
+| `aiTokenUsage.toggleLogStatusBar` | `Toggle Console Log Status Bar Item` | Toggle visibility of the `$(terminal) 9R Log` status bar button |
 | `aiTokenUsage.refresh` | `Refresh` | Manually trigger immediate quota check with progress indicator |
 | `aiTokenUsage.setConnection` | `Set Connection (URL & Password)` | Configure Base URL (Cloudflare Tunnel or Local) and Dashboard Password |
 | `aiTokenUsage.setDisplayMode` | `Set Status Bar Display Style` | Switch between Compact, Detailed, and Minimal status bar styles |
@@ -138,6 +146,7 @@ Customize extension behavior in your `settings.json`:
 
 | Setting | Type | Default | Description |
 |:---|:---:|:---:|:---|
+| `aiTokenUsage.showLogStatusBar` | `boolean` | `true` | Show dedicated `$(terminal) 9R Log` status bar item to quickly open Console Log |
 | `aiTokenUsage.statusDisplayMode` | `string` | `"compact"` | Status bar style: `"compact"`, `"detailed"`, or `"minimal"` |
 | `aiTokenUsage.tooltipDisplayMode` | `string` | `"all"` | Tooltip content detail: `"all"` (both summary & accounts), `"summary"` (summary table only), or `"accounts"` (account list only) |
 | `aiTokenUsage.apiBaseUrl` | `string` | `"http://localhost:20128"` | 9Router Base URL (e.g. `http://localhost:20128` or `https://*.trycloudflare.com`) |

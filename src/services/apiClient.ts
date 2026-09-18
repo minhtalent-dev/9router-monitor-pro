@@ -3,12 +3,15 @@ import * as https from 'https';
 import { URL } from 'url';
 import {
   AuthContext,
+  ConsoleStreamMessage,
   DashboardData,
   ExtensionConfig,
   ProviderConnection,
   ProviderUsage,
   QuotaData,
-  UsageData
+  RequestLogItem,
+  UsageData,
+  UsageStats
 } from '../types';
 import {
   asRecord,
@@ -106,6 +109,101 @@ export function fetchJson(
       req.destroy(new Error('Request timed out (25s).'));
     });
     req.on('error', (err) => reject(err));
+    req.end();
+  });
+}
+
+export interface RequestOptions {
+  method?: string;
+  body?: string;
+  headers?: Record<string, string>;
+}
+
+export function requestWithAuth<T = unknown>(
+  target: URL,
+  auth: AuthContext,
+  options: RequestOptions = {},
+  allowRetry = true
+): Promise<{ status: number; data?: T }> {
+  return new Promise((resolve, reject) => {
+    const client = target.protocol === 'http:' ? http : https;
+    const method = options.method ?? 'GET';
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      'User-Agent': 'vscode-9router-monitor-pro',
+      ...(options.headers ?? {})
+    };
+
+    if (auth.authToken) {
+      headers['Cookie'] = `auth_token=${auth.authToken}`;
+    }
+    if (auth.cliToken) {
+      headers['x-9r-cli-token'] = auth.cliToken;
+    }
+    if (auth.legacyApiKey) {
+      headers['Authorization'] = `Bearer ${auth.legacyApiKey}`;
+      headers['x-api-key'] = auth.legacyApiKey;
+    }
+    if (options.body) {
+      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+      headers['Content-Length'] = String(Buffer.byteLength(options.body));
+    }
+
+    const req = client.request(
+      target,
+      {
+        method,
+        headers
+      },
+      (res) => {
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk: Buffer) => chunks.push(chunk));
+        res.on('end', async () => {
+          const body = Buffer.concat(chunks).toString('utf-8');
+          const status = res.statusCode ?? 0;
+
+          if (status === 401 && allowRetry && auth.password) {
+            try {
+              const newToken = await loginDashboard(auth.baseUrl, auth.password);
+              auth.authToken = newToken;
+              await auth.context.secrets.store(SECRET_SESSION_TOKEN, newToken);
+              const retryResult = await requestWithAuth<T>(
+                target,
+                auth,
+                options,
+                false
+              );
+              resolve(retryResult);
+              return;
+            } catch (loginErr) {
+              const msg =
+                loginErr instanceof Error ? loginErr.message : String(loginErr);
+              reject(new Error(`HTTP 401 (re-login failed): ${msg}`));
+              return;
+            }
+          }
+
+          let data: T | undefined;
+          if (body) {
+            try {
+              data = JSON.parse(body) as T;
+            } catch {
+              data = body as unknown as T;
+            }
+          }
+
+          resolve({ status, data });
+        });
+      }
+    );
+
+    req.setTimeout(25000, () => {
+      req.destroy(new Error('Request timed out (25s).'));
+    });
+    req.on('error', (err) => reject(err));
+    if (options.body) {
+      req.write(options.body);
+    }
     req.end();
   });
 }
@@ -349,3 +447,241 @@ export function normalizeQuota(raw: unknown): QuotaData {
     unlimited: toBoolean(record.unlimited, false)
   };
 }
+
+export async function fetchUsageStats(
+  config: ExtensionConfig,
+  auth: AuthContext
+): Promise<UsageStats | undefined> {
+  try {
+    const target = buildUrl(config.baseUrl, '/api/usage/stats');
+    const res = await requestWithAuth<UsageStats | { data: UsageStats }>(
+      target,
+      auth,
+      { method: 'GET' }
+    );
+    if (res.status >= 200 && res.status < 300 && res.data) {
+      const rec = asRecord(res.data);
+      if (rec && asRecord(rec.data)) {
+        return rec.data as unknown as UsageStats;
+      }
+      return res.data as UsageStats;
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function fetchRequestLogs(
+  config: ExtensionConfig,
+  auth: AuthContext,
+  page = 1,
+  limit = 20
+): Promise<RequestLogItem[]> {
+  try {
+    const target = buildUrl(
+      config.baseUrl,
+      `/api/usage/request-logs?page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`
+    );
+    const res = await requestWithAuth<unknown>(target, auth, { method: 'GET' });
+    if (res.status < 200 || res.status >= 300 || !res.data) {
+      return [];
+    }
+
+    let rawList: unknown[] = [];
+    if (Array.isArray(res.data)) {
+      rawList = res.data;
+    } else if (asRecord(res.data)) {
+      const record = asRecord(res.data)!;
+      if (Array.isArray(record.logs)) {
+        rawList = record.logs;
+      } else if (Array.isArray(record.data)) {
+        rawList = record.data;
+      }
+    }
+
+    return rawList.map((item): RequestLogItem => {
+      if (typeof item === 'string') {
+        const parts = item.split(' | ').map((s) => s.trim());
+        return {
+          raw: item,
+          timestamp: parts[0] ?? '',
+          model: parts[1] ?? '',
+          provider: parts[2] ?? '',
+          account: parts[3] ?? '',
+          inTokens: parseInt(parts[4] ?? '0', 10) || 0,
+          outTokens: parseInt(parts[5] ?? '0', 10) || 0,
+          status: parts[6] || 'OK'
+        };
+      }
+      const rec = asRecord(item) ?? {};
+      return {
+        raw: toOptionalString(rec.raw) ?? '',
+        timestamp: toOptionalString(rec.timestamp) ?? '',
+        model: toOptionalString(rec.model) ?? '',
+        provider: toOptionalString(rec.provider) ?? '',
+        account: toOptionalString(rec.account) ?? '',
+        inTokens: toNumber(rec.inTokens, 0),
+        outTokens: toNumber(rec.outTokens, 0),
+        status: toOptionalString(rec.status) ?? 'OK'
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function openConsoleLogStream(
+  config: ExtensionConfig,
+  auth: AuthContext,
+  onEvent: (msg: ConsoleStreamMessage) => void,
+  onError: (err: Error) => void
+): () => void {
+  let isAborted = false;
+  let reconnectTimer: NodeJS.Timeout | undefined;
+  let activeReq: http.ClientRequest | undefined;
+
+  const connect = () => {
+    if (isAborted) {
+      return;
+    }
+
+    let target: URL;
+    try {
+      target = buildUrl(config.baseUrl, '/api/translator/console-logs/stream');
+    } catch (err) {
+      onError(err instanceof Error ? err : new Error(String(err)));
+      return;
+    }
+
+    const client = target.protocol === 'http:' ? http : https;
+    const headers: Record<string, string> = {
+      Accept: 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'User-Agent': 'vscode-9router-monitor-pro'
+    };
+
+    if (auth.authToken) {
+      headers['Cookie'] = `auth_token=${auth.authToken}`;
+    }
+    if (auth.cliToken) {
+      headers['x-9r-cli-token'] = auth.cliToken;
+    }
+    if (auth.legacyApiKey) {
+      headers['Authorization'] = `Bearer ${auth.legacyApiKey}`;
+      headers['x-api-key'] = auth.legacyApiKey;
+    }
+
+    const req = client.request(
+      target,
+      {
+        method: 'GET',
+        headers
+      },
+      (res) => {
+        if (res.statusCode && (res.statusCode < 200 || res.statusCode >= 300)) {
+          onError(new Error(`SSE stream HTTP ${res.statusCode}`));
+          scheduleReconnect();
+          return;
+        }
+
+        let buffer = '';
+        res.on('data', (chunk: Buffer) => {
+          buffer += chunk.toString('utf-8');
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? '';
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('data:')) {
+              const jsonStr = trimmed.slice(5).trim();
+              if (!jsonStr) {
+                continue;
+              }
+              try {
+                const parsed = JSON.parse(jsonStr) as ConsoleStreamMessage;
+                if (
+                  parsed &&
+                  typeof parsed === 'object' &&
+                  'type' in parsed &&
+                  ['init', 'line', 'lines', 'clear'].includes(parsed.type)
+                ) {
+                  onEvent(parsed);
+                }
+              } catch {
+                // Ignore parse errors for partial chunks
+              }
+            }
+          }
+        });
+
+        res.on('end', () => {
+          if (!isAborted) {
+            scheduleReconnect();
+          }
+        });
+
+        res.on('close', () => {
+          if (!isAborted) {
+            scheduleReconnect();
+          }
+        });
+
+        res.on('error', (err: Error) => {
+          if (!isAborted) {
+            onError(err);
+            scheduleReconnect();
+          }
+        });
+      }
+    );
+
+    req.on('error', (err: Error) => {
+      if (!isAborted) {
+        onError(err);
+        scheduleReconnect();
+      }
+    });
+
+    activeReq = req;
+    req.end();
+  };
+
+  const scheduleReconnect = () => {
+    if (isAborted || reconnectTimer) {
+      return;
+    }
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = undefined;
+      connect();
+    }, 3000);
+  };
+
+  connect();
+
+  return () => {
+    isAborted = true;
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = undefined;
+    }
+    if (activeReq) {
+      activeReq.destroy();
+      activeReq = undefined;
+    }
+  };
+}
+
+export async function clearServerConsoleLogs(
+  config: ExtensionConfig,
+  auth: AuthContext
+): Promise<boolean> {
+  try {
+    const target = buildUrl(config.baseUrl, '/api/translator/console-logs');
+    const res = await requestWithAuth(target, auth, { method: 'DELETE' });
+    return res.status === 200;
+  } catch {
+    return false;
+  }
+}
+

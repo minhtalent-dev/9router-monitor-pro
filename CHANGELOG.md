@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.0] - 2026-09-18
+
+### Added
+- 🖥️ **Live Console Log**: Stream nhật ký máy chủ thời gian thực qua SSE (`/api/translator/console-logs/stream`), giao diện terminal đen Fluent dark, nút Pause/Resume, Clear đồng bộ server, Auto-scroll, Filter tìm kiếm, tô màu cú pháp theo mã trạng thái (DONE, POST, TOKEN_REFRESH, WARN, ERROR).
+- 📈 **Usage & Analytics**: Dashboard giám sát tổng hợp 5 thẻ KPI (Total Requests, Prompt Tokens, Cached Tokens, Completion Tokens, Est. Cost) và bảng lịch sử 20 request gần nhất.
+- ⚡ **Dedicated Status Bar Log Widget**: Thêm icon phụ `$(terminal) 9R Log` cạnh thanh trạng thái chính, click 1 chạm mở thẳng tab Console Log; hỗ trợ bật/tắt linh hoạt qua setting `aiTokenUsage.showLogStatusBar` hoặc Quick Menu.
+- 🔄 **Zero State Loss Navigation**: Chuyển đổi qua lại giữa 3 Tab (Providers & Quotas, Usage Analytics, Live Console) bằng CSS display toggle, giữ nguyên 100% nội dung log, filter và vị trí cuộn.
+
 ## [1.0.3] - 2026-09-17
 
 ### Added

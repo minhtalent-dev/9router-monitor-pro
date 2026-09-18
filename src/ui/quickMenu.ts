@@ -23,6 +23,7 @@ import {
   quotaTitle
 } from '../utils/helpers';
 import { renderStatusBar } from './statusBar';
+import { showDetails } from './dashboardPanel';
 
 interface IntervalPickItem extends vscode.QuickPickItem {
   seconds?: number;
@@ -590,6 +591,21 @@ export async function openQuickMenu(
       action: 'openDashboard'
     },
     {
+      label: '$(terminal) Open Live Console Log',
+      description: 'Open real-time 9Router server console terminal',
+      detail: 'Stream live 9Router server logs, filter and inspect events',
+      action: 'openConsoleLog'
+    },
+    {
+      label:
+        cfg.showLogStatusBar !== false
+          ? '$(eye-closed) Hide Console Log Status Bar Item'
+          : '$(eye) Show Console Log Status Bar Item',
+      description: 'Toggle $(terminal) 9R Log icon visibility on status bar',
+      detail: 'Show or hide dedicated 9R Log shortcut button on status bar',
+      action: 'toggleLogStatusBar'
+    },
+    {
       label: '$(refresh) Refresh Data',
       description: 'Fetch latest quota from 9Router',
       detail: 'Fetch latest quota and provider stats immediately',
@@ -648,6 +664,24 @@ export async function openQuickMenu(
     case 'openDashboard':
       await onShowDetails();
       break;
+    case 'openConsoleLog':
+      await showDetails(context, cfg, onRefresh, 'console');
+      break;
+    case 'toggleLogStatusBar': {
+      const config = vscode.workspace.getConfiguration('aiTokenUsage');
+      const nextVal = cfg.showLogStatusBar === false ? true : false;
+      await config.update(
+        'showLogStatusBar',
+        nextVal,
+        vscode.ConfigurationTarget.Global
+      );
+      cfg.showLogStatusBar = nextVal;
+      renderStatusBar(cfg);
+      vscode.window.showInformationMessage(
+        `[9Router Pro] Console Log status bar item ${nextVal ? 'shown' : 'hidden'}.`
+      );
+      break;
+    }
     case 'refresh':
       await onRefresh(true);
       break;
