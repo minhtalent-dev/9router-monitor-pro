@@ -52,7 +52,7 @@ ${getDashboardStyles()}
       <h1>${
         iconBase64
           ? `<img src="${iconBase64}" class="logo" style="width: 28px; height: 28px; vertical-align: middle; border-radius: 6px; margin-right: 8px; box-shadow: 0 0 12px rgba(0, 180, 255, 0.4);" alt="Logo" />`
-          : '<span class="logo">📊</span>'
+          : '<span class="logo">🖥️</span>'
       } 9Router Monitor Pro</h1>
       <div class="updated">Updated: ${escHtml(formatDate(data.fetchedAt.toISOString()))} · Auto-refresh: ${cfg.intervalSeconds}s</div>
     </div>
