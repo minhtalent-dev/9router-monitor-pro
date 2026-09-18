@@ -38,6 +38,8 @@ export function createDashboardTooltip(
     enabledCommands: [
       'aiTokenUsage.openQuickMenu',
       'aiTokenUsage.showDetails',
+      'aiTokenUsage.openConsoleLog',
+      'aiTokenUsage.openUsageAnalytics',
       'aiTokenUsage.setTooltipMode',
       'aiTokenUsage.toggleTooltipMode',
       'aiTokenUsage.setDisplayMode',
@@ -253,7 +255,7 @@ export function createDashboardTooltip(
         : 'Mode: All';
 
   md.appendMarkdown(
-    `---\n\n[⚡ Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;│&nbsp; [🖥️ Dashboard](command:aiTokenUsage.showDetails) &nbsp;│&nbsp; [⚙️ ${toggleLabel}](command:aiTokenUsage.toggleTooltipMode) &nbsp;│&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
+    `---\n\n[⚡ Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;│&nbsp; [🖥️ Dashboard](command:aiTokenUsage.showDetails) &nbsp;│&nbsp; [🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;│&nbsp; [📈 Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;│&nbsp; [⚙️ ${toggleLabel}](command:aiTokenUsage.toggleTooltipMode) &nbsp;│&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
   );
 
   return md;
@@ -283,6 +285,8 @@ export function createLogStatusBarTooltip(
   const md = new vscode.MarkdownString(undefined, true);
   md.isTrusted = {
     enabledCommands: [
+      'aiTokenUsage.openQuickMenu',
+      'aiTokenUsage.showDetails',
       'aiTokenUsage.openConsoleLog',
       'aiTokenUsage.openUsageAnalytics',
       'aiTokenUsage.setLogTooltipLimit',
@@ -372,13 +376,13 @@ export function createLogStatusBarTooltip(
 
   const modeLabel =
     tooltipMode === 'all'
-      ? 'All'
+      ? 'Mode: All'
       : tooltipMode === 'summary'
-        ? 'Summary'
-        : 'Logs';
+        ? 'Mode: Summary'
+        : 'Mode: Logs';
 
   md.appendMarkdown(
-    `---\n\n[⚙️ Mode: ${modeLabel}](command:aiTokenUsage.toggleLogTooltipMode) &nbsp;│&nbsp; [🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;│&nbsp; [📈 Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;│&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
+    `---\n\n[⚡ Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;│&nbsp; [🖥️ Dashboard](command:aiTokenUsage.showDetails) &nbsp;│&nbsp; [🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;│&nbsp; [📈 Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;│&nbsp; [⚙️ ${modeLabel}](command:aiTokenUsage.toggleLogTooltipMode) &nbsp;│&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
   );
 
   return md;
