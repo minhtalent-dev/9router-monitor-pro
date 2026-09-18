@@ -536,6 +536,26 @@ export async function fetchRequestLogs(
   }
 }
 
+export function isLocalhostUrl(baseUrl: string): boolean {
+  try {
+    const u = new URL(baseUrl);
+    const h = u.hostname.toLowerCase();
+    return h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '0.0.0.0';
+  } catch {
+    return true;
+  }
+}
+
+export function formatRequestLogAsConsoleLine(item: RequestLogItem): string {
+  const timePart = item.timestamp ? item.timestamp.split(' ')[1] || item.timestamp : '00:00:00';
+  const inStr = item.inTokens >= 1000 ? (item.inTokens / 1000).toFixed(1) + 'K' : String(item.inTokens);
+  const outStr = item.outTokens >= 1000 ? (item.outTokens / 1000).toFixed(1) + 'K' : String(item.outTokens);
+  const isOk = item.status.toLowerCase() === 'ok';
+  const statusIcon = isOk ? '🟢 📊' : '🔴 ⚠️';
+  const statusLabel = isOk ? 'DONE' : 'FAIL';
+  return `[${timePart}] ${statusIcon} ${statusLabel} · ${item.model} · ${item.provider} · IN ${inStr} · OUT ${outStr} · ACC:${item.account}`;
+}
+
 export function openConsoleLogStream(
   config: ExtensionConfig,
   auth: AuthContext,
@@ -544,13 +564,76 @@ export function openConsoleLogStream(
   onSystem?: (msg: string) => void
 ): () => void {
   let isAborted = false;
+  let pollTimer: NodeJS.Timeout | undefined;
+  let watchdogTimer: NodeJS.Timeout | undefined;
   let reconnectTimer: NodeJS.Timeout | undefined;
   let activeReq: http.ClientRequest | undefined;
+  let receivedSseChunk = false;
+  let isFallbackPolling = false;
+  const knownKeys = new Set<string>();
+
+  const startTunnelPolling = async () => {
+    try {
+      const initialLogs = await fetchRequestLogs(config, auth, 1, 50);
+      if (isAborted) return;
+      // Reverse so oldest is first
+      const chronological = [...initialLogs].reverse();
+      for (const item of chronological) {
+        knownKeys.add(item.raw);
+      }
+      const formatted = chronological.map(formatRequestLogAsConsoleLine);
+      onEvent({ type: 'init', logs: formatted });
+      onSystem?.(`[TUNNEL LIVE] Stream connected. Loaded ${formatted.length} live transactions via Tunnel.`);
+
+      pollTimer = setInterval(async () => {
+        if (isAborted) return;
+        try {
+          const recent = await fetchRequestLogs(config, auth, 1, 20);
+          if (isAborted) return;
+          const newItems = [...recent].reverse().filter((it) => !knownKeys.has(it.raw));
+          for (const it of newItems) {
+            knownKeys.add(it.raw);
+            if (knownKeys.size > 2000) {
+              // Keep known set bounded
+              const first = knownKeys.values().next().value;
+              if (first) knownKeys.delete(first);
+            }
+            onEvent({ type: 'line', line: formatRequestLogAsConsoleLine(it) });
+          }
+        } catch (pollErr) {
+          logError('TunnelPoll', 'Polling error:', pollErr);
+        }
+      }, 2500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logError('TunnelPoll', 'Initial fetch error:', err);
+      onError(new Error(`Tunnel log fetch error: ${msg}`));
+    }
+  };
+
+  const isLocal = isLocalhostUrl(config.baseUrl);
+
+  if (!isLocal) {
+    logDebug('TunnelStream', `Activating Tunnel Adaptive Log Mode for ${config.baseUrl}`);
+    onSystem?.(`[TUNNEL] Cloudflare Tunnel detected (${config.baseUrl}). Connecting via Live Transaction Stream...`);
+
+    void startTunnelPolling();
+
+    return () => {
+      isAborted = true;
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = undefined;
+      }
+    };
+  }
+
+  // Localhost branch: connect via native SSE with watchdog fallback
   const candidateTokens = getAllLocalCliTokens();
   let tokenIdx = 0;
 
   const connect = () => {
-    if (isAborted) {
+    if (isAborted || isFallbackPolling) {
       return;
     }
 
@@ -617,7 +700,7 @@ export function openConsoleLogStream(
               const newToken = await loginDashboard(auth.baseUrl, auth.password);
               auth.authToken = newToken;
               await auth.context.secrets.store(SECRET_SESSION_TOKEN, newToken);
-              if (!isAborted) {
+              if (!isAborted && !isFallbackPolling) {
                 connect();
               }
               return;
@@ -629,7 +712,7 @@ export function openConsoleLogStream(
           if (tokenIdx + 1 < candidateTokens.length) {
             tokenIdx++;
             auth.cliToken = candidateTokens[tokenIdx];
-            if (!isAborted) {
+            if (!isAborted && !isFallbackPolling) {
               connect();
             }
             return;
@@ -651,8 +734,32 @@ export function openConsoleLogStream(
           return;
         }
 
+        // Watchdog: If 3.5s pass without any SSE chunks, fallback to Tunnel Adaptive Polling
+        if (watchdogTimer) {
+          clearTimeout(watchdogTimer);
+          watchdogTimer = undefined;
+        }
+        receivedSseChunk = false;
+        watchdogTimer = setTimeout(() => {
+          if (!receivedSseChunk && !isAborted && !isFallbackPolling) {
+            isFallbackPolling = true;
+            logDebug('SSEWatchdog', 'No SSE chunks received after 3.5s of HTTP 200, falling back to Tunnel Adaptive Polling.');
+            onSystem?.('[WATCHDOG] SSE stream idle/buffered for 3.5s. Switching to Adaptive Polling Mode...');
+            if (activeReq) {
+              activeReq.destroy();
+              activeReq = undefined;
+            }
+            void startTunnelPolling();
+          }
+        }, 3500);
+
         let buffer = '';
         res.on('data', (chunk: Buffer) => {
+          receivedSseChunk = true;
+          if (watchdogTimer) {
+            clearTimeout(watchdogTimer);
+            watchdogTimer = undefined;
+          }
           logDebug('SSE', `Chunk received: ${chunk.length} bytes`);
           try {
             buffer += chunk.toString('utf-8');
@@ -698,7 +805,7 @@ export function openConsoleLogStream(
         res.on('end', () => {
           logDebug('SSE', 'Socket closed / ended');
           onSystem?.('[SOCKET] Connection closed');
-          if (!isAborted) {
+          if (!isAborted && !isFallbackPolling) {
             scheduleReconnect();
           }
         });
@@ -706,7 +813,7 @@ export function openConsoleLogStream(
         res.on('close', () => {
           logDebug('SSE', 'Socket closed / ended');
           onSystem?.('[SOCKET] Connection closed');
-          if (!isAborted) {
+          if (!isAborted && !isFallbackPolling) {
             scheduleReconnect();
           }
         });
@@ -714,7 +821,7 @@ export function openConsoleLogStream(
         res.on('error', (err: Error) => {
           logError('SSE', `Socket error: ${err.message}`, err);
           onSystem?.(`[ERROR] ${err.message}`);
-          if (!isAborted) {
+          if (!isAborted && !isFallbackPolling) {
             onError(err);
             scheduleReconnect();
           }
@@ -725,7 +832,7 @@ export function openConsoleLogStream(
     req.on('error', (err: Error) => {
       logError('SSE', `Socket error: ${err.message}`, err);
       onSystem?.(`[ERROR] ${err.message}`);
-      if (!isAborted) {
+      if (!isAborted && !isFallbackPolling) {
         onError(err);
         scheduleReconnect();
       }
@@ -736,7 +843,7 @@ export function openConsoleLogStream(
   };
 
   const scheduleReconnect = () => {
-    if (isAborted || reconnectTimer) {
+    if (isAborted || isFallbackPolling || reconnectTimer) {
       return;
     }
     reconnectTimer = setTimeout(() => {
@@ -749,6 +856,14 @@ export function openConsoleLogStream(
 
   return () => {
     isAborted = true;
+    if (watchdogTimer) {
+      clearTimeout(watchdogTimer);
+      watchdogTimer = undefined;
+    }
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = undefined;
+    }
     if (reconnectTimer) {
       clearTimeout(reconnectTimer);
       reconnectTimer = undefined;

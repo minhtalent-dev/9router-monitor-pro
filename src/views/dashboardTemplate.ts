@@ -1398,7 +1398,13 @@ export function getWebviewContent(
         switchTab(message.tab);
       } else if (message.command === 'consoleLogSystem' && message.message) {
         console.log('[9R-SYSTEM]', message.message);
-        if (message.message.includes('[HTTP 200]')) {
+        if (message.message.includes('[TUNNEL LIVE]')) {
+          const streamBadge = document.getElementById('streamStatusBadge');
+          if (streamBadge) {
+            streamBadge.textContent = '● Live (Tunnel)';
+            streamBadge.style.background = '#238636';
+          }
+        } else if (message.message.includes('[HTTP 200]')) {
           const streamBadge = document.getElementById('streamStatusBadge');
           if (streamBadge) {
             streamBadge.textContent = '● Live';
@@ -1429,7 +1435,9 @@ export function getWebviewContent(
       } else if (message.command === 'consoleLogEvent' && message.event) {
         const streamBadge = document.getElementById('streamStatusBadge');
         if (streamBadge) {
-          streamBadge.textContent = '● Live';
+          if (!streamBadge.textContent || !streamBadge.textContent.includes('Tunnel')) {
+            streamBadge.textContent = '● Live';
+          }
           streamBadge.style.background = '#238636';
         }
         const ev = message.event;
