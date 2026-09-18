@@ -92,7 +92,7 @@ export function createDashboardTooltip(
     // Aggregate Summary
     if (showSummary) {
       md.appendMarkdown('#### 📊 Aggregate Summary\n\n');
-      md.appendMarkdown('| Model | Remaining / Total | Used | Reset | Progress |\n');
+      md.appendMarkdown('| 🤖 Model | 📥 Remaining / Total | 📈 Used | ⏳ Reset | ⚡ Progress |\n');
       md.appendMarkdown('|:---|:---:|:---:|:---:|:---:|\n');
 
       for (const m of modelsToTrack) {
@@ -152,7 +152,7 @@ export function createDashboardTooltip(
     if (showAccounts) {
       md.appendMarkdown(`#### 👥 Account Details (${targets.length} Accounts)\n\n`);
       const modelHeaders = modelsToTrack.map((m) => quotaTitle(m));
-      const headerCols = ['#', 'Account', ...modelHeaders, 'Status'];
+      const headerCols = ['#', '👤 Account', ...modelHeaders, '⚡ Status'];
       const alignCols = [
         ':--',
         ':---',
@@ -216,7 +216,7 @@ export function createDashboardTooltip(
     }
 
     if (singleModels.length > 0) {
-      md.appendMarkdown('| Model | Remaining / Total | Used | Reset | Progress |\n');
+      md.appendMarkdown('| 🤖 Model | 📥 Remaining / Total | 📈 Used | ⏳ Reset | ⚡ Progress |\n');
       md.appendMarkdown('|:---|:---:|:---:|:---:|:---:|\n');
 
       for (const m of singleModels) {
@@ -346,7 +346,7 @@ export function createLogStatusBarTooltip(
     if (displayItems.length === 0) {
       md.appendMarkdown('_No recent transactions found._\n\n');
     } else {
-      md.appendMarkdown('| Time | Model | Provider | In / Out | Status | Account |\n');
+      md.appendMarkdown('| 🕒 Time | 🤖 Model | 🏢 Provider | 🔄 In / Out | ⚡ Status | 👤 Account |\n');
       md.appendMarkdown('| :--- | :--- | :--- | :---: | :---: | :--- |\n');
       for (const item of displayItems) {
         const timeStr = formatLogTime(item.timestamp);
