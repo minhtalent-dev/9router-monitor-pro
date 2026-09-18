@@ -256,6 +256,152 @@ export async function toggleTooltipMode(
   );
 }
 
+export async function setLogStatusDisplayMode(
+  cfg: ExtensionConfig,
+  onRefresh?: () => Promise<void>
+): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 80));
+
+  const currentMode = cfg.logStatusDisplayMode ?? 'minimal';
+
+  interface LogStatusModePickItem extends vscode.QuickPickItem {
+    mode: 'minimal' | 'compact' | 'detailed';
+  }
+
+  const items: LogStatusModePickItem[] = [
+    {
+      label: '$(terminal) Minimal (Default)',
+      description: '$(terminal) 9R Log',
+      detail: 'Ultra-clean: simple icon and label without metrics',
+      mode: 'minimal',
+      picked: currentMode === 'minimal'
+    },
+    {
+      label: '$(symbol-color) Compact',
+      description: '$(terminal) 9R Log · 10K',
+      detail: 'Balanced: displays total requests count',
+      mode: 'compact',
+      picked: currentMode === 'compact'
+    },
+    {
+      label: '$(list-flat) Detailed',
+      description: '$(terminal) 9R Log · 10K req · $980',
+      detail: 'Full metrics: displays total requests and rounded cost',
+      mode: 'detailed',
+      picked: currentMode === 'detailed'
+    }
+  ];
+
+  const selected = await vscode.window.showQuickPick(items, {
+    title: `9Router Monitor Pro — 9R Log Status Bar Style (Current: ${currentMode})`,
+    placeHolder: 'Select 9R Log Status Bar display style',
+    ignoreFocusOut: true
+  });
+
+  if (!selected) {
+    return;
+  }
+
+  cfg.logStatusDisplayMode = selected.mode;
+  renderStatusBar(cfg);
+
+  const config = vscode.workspace.getConfiguration('aiTokenUsage');
+  await config.update(
+    'logStatusDisplayMode',
+    selected.mode,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.showInformationMessage(
+    `[9Router Pro] 9R Log Status Bar style set to: ${selected.mode}`
+  );
+}
+
+export async function setLogTooltipMode(
+  cfg: ExtensionConfig,
+  onRefresh?: () => Promise<void>
+): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 80));
+
+  const currentMode = cfg.logTooltipDisplayMode ?? 'all';
+
+  interface LogTooltipModePickItem extends vscode.QuickPickItem {
+    mode: 'all' | 'summary' | 'logs';
+  }
+
+  const items: LogTooltipModePickItem[] = [
+    {
+      label: '$(checklist) All Details (Default)',
+      description: 'KPI Summary Table + Recent Transactions List',
+      detail: 'Shows both aggregated KPI metrics and live transaction stream',
+      mode: 'all',
+      picked: currentMode === 'all'
+    },
+    {
+      label: '$(table) KPI Summary Only',
+      description: 'Clean & Compact (Requests, Tokens, Est. Cost)',
+      detail: 'Hides transactions list, keeping only high-level KPI metrics',
+      mode: 'summary',
+      picked: currentMode === 'summary'
+    },
+    {
+      label: '$(history) Recent Transactions Only',
+      description: 'Transactions Stream Only',
+      detail: 'Shows recent transaction table without KPI metrics',
+      mode: 'logs',
+      picked: currentMode === 'logs'
+    }
+  ];
+
+  const selected = await vscode.window.showQuickPick(items, {
+    title: `9Router Monitor Pro — 9R Log Tooltip Detail Level (Current: ${currentMode})`,
+    placeHolder: 'Select 9R Log tooltip detail level',
+    ignoreFocusOut: true
+  });
+
+  if (!selected) {
+    return;
+  }
+
+  cfg.logTooltipDisplayMode = selected.mode;
+  renderStatusBar(cfg);
+
+  const config = vscode.workspace.getConfiguration('aiTokenUsage');
+  await config.update(
+    'logTooltipDisplayMode',
+    selected.mode,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.showInformationMessage(
+    `[9Router Pro] 9R Log Tooltip detail level set to: ${selected.mode}`
+  );
+}
+
+export async function toggleLogTooltipMode(
+  cfg: ExtensionConfig,
+  onRefresh?: () => Promise<void>
+): Promise<void> {
+  const currentMode = cfg.logTooltipDisplayMode ?? 'all';
+  const cycleMap: Record<'all' | 'summary' | 'logs', 'all' | 'summary' | 'logs'> = {
+    all: 'summary',
+    summary: 'logs',
+    logs: 'all'
+  };
+  const nextMode = cycleMap[currentMode] ?? 'all';
+
+  cfg.logTooltipDisplayMode = nextMode;
+  renderStatusBar(cfg);
+
+  const config = vscode.workspace.getConfiguration('aiTokenUsage');
+  await config.update(
+    'logTooltipDisplayMode',
+    nextMode,
+    vscode.ConfigurationTarget.Global
+  );
+  vscode.window.showInformationMessage(
+    `[9Router Pro] 9R Log Tooltip mode: ${nextMode}`
+  );
+}
+
 export async function setRefreshInterval(cfg: ExtensionConfig): Promise<void> {
   const currentInterval = cfg.intervalSeconds;
 
@@ -753,6 +899,20 @@ export async function openQuickMenu(
       action: 'setTooltipMode'
     },
     {
+      label: `$(symbol-color) Set 9R Log Status Bar Style (${cfg.logStatusDisplayMode ?? 'minimal'})...`,
+      description: 'Minimal / Compact / Detailed',
+      detail:
+        'Select 9R Log Status Bar display style (minimal, compact with reqs, or detailed with reqs & cost)',
+      action: 'setLogStatusDisplayMode'
+    },
+    {
+      label: `$(table) Set 9R Log Tooltip Detail Mode (${cfg.logTooltipDisplayMode ?? 'all'})...`,
+      description: 'All / Summary / Logs',
+      detail:
+        'Configure 9R Log hover tooltip detail level (all, summary only, or logs only)',
+      action: 'setLogTooltipMode'
+    },
+    {
       label: '$(gear) Setup Connection (URL & Password)',
       description: cfg.baseUrl,
       detail: 'Reconfigure Base URL, Password, or switch to Local CLI Token',
@@ -820,6 +980,12 @@ export async function openQuickMenu(
       break;
     case 'setTooltipMode':
       await setTooltipMode(cfg, onRefresh);
+      break;
+    case 'setLogStatusDisplayMode':
+      await setLogStatusDisplayMode(cfg, onRefresh);
+      break;
+    case 'setLogTooltipMode':
+      await setLogTooltipMode(cfg, onRefresh);
       break;
     case 'setConnection':
       await setConnection(context, onRefresh);

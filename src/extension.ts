@@ -32,7 +32,10 @@ import {
   setLogRefreshInterval,
   setDisplayMode,
   setTooltipMode,
-  toggleTooltipMode
+  toggleTooltipMode,
+  setLogStatusDisplayMode,
+  setLogTooltipMode,
+  toggleLogTooltipMode
 } from './ui/quickMenu';
 import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
 import { getOutputChannel } from './utils/logger';
@@ -81,6 +84,15 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiTokenUsage.toggleTooltipMode', () =>
       toggleTooltipMode(getConfig(), () => refresh(context))
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.toggleLogTooltipMode', () =>
+      toggleLogTooltipMode(getActiveConfig() ?? getConfig(), () => refresh(context))
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.setLogStatusDisplayMode', () =>
+      setLogStatusDisplayMode(getActiveConfig() ?? getConfig(), () => refresh(context))
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.setLogTooltipMode', () =>
+      setLogTooltipMode(getActiveConfig() ?? getConfig(), () => refresh(context))
     ),
     vscode.commands.registerCommand('aiTokenUsage.openConsoleLog', () =>
       showDetails(
@@ -132,7 +144,9 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       if (
         e.affectsConfiguration('aiTokenUsage.statusDisplayMode') ||
-        e.affectsConfiguration('aiTokenUsage.tooltipDisplayMode')
+        e.affectsConfiguration('aiTokenUsage.tooltipDisplayMode') ||
+        e.affectsConfiguration('aiTokenUsage.logStatusDisplayMode') ||
+        e.affectsConfiguration('aiTokenUsage.logTooltipDisplayMode')
       ) {
         // Pure visual display change: re-render immediately without redundant network fetch
         const fresh = getConfig();
@@ -191,7 +205,13 @@ export function getConfig(): ExtensionConfig {
       3,
       cfg.get<number>('logStatusBarRefreshIntervalSeconds', 10)
     ),
-    showLogStatusBar: cfg.get<boolean>('showLogStatusBar', true)
+    showLogStatusBar: cfg.get<boolean>('showLogStatusBar', true),
+    logTooltipDisplayMode:
+      active?.logTooltipDisplayMode ??
+      cfg.get<'all' | 'summary' | 'logs'>('logTooltipDisplayMode', 'all'),
+    logStatusDisplayMode:
+      active?.logStatusDisplayMode ??
+      cfg.get<'minimal' | 'compact' | 'detailed'>('logStatusDisplayMode', 'minimal')
   };
   setActiveConfig(fresh);
   return fresh;

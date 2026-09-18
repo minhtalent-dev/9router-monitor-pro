@@ -64,7 +64,20 @@ export function renderStatusBar(
     const stats = getLastUsageStats();
     const logs = getLastRecentLogs();
     const limit = getLogTooltipLimit();
-    logItem.tooltip = createLogStatusBarTooltip(stats, logs, limit);
+    const tooltipMode = cfg.logTooltipDisplayMode ?? 'all';
+    logItem.tooltip = createLogStatusBarTooltip(stats, logs, limit, tooltipMode);
+
+    const logStyle = cfg.logStatusDisplayMode ?? 'minimal';
+    if (logStyle === 'compact') {
+      const totalReq = formatCompact(stats?.totalRequests ?? 0);
+      logItem.text = `$(terminal) 9R Log · ${totalReq}`;
+    } else if (logStyle === 'detailed') {
+      const totalReq = formatCompact(stats?.totalRequests ?? 0);
+      const cost = Math.round(Number(stats?.totalCost || 0));
+      logItem.text = `$(terminal) 9R Log · ${totalReq} req · $${cost}`;
+    } else {
+      logItem.text = '$(terminal) 9R Log';
+    }
   }
 
   const statusBarItem = getStatusBarItem();

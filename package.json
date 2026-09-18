@@ -98,11 +98,35 @@
       {
         "command": "aiTokenUsage.showDebugLogs",
         "title": "9Router Monitor Pro: Show Debug Logs"
+      },
+      {
+        "command": "aiTokenUsage.toggleLogTooltipMode",
+        "title": "9Router Monitor Pro: Toggle 9R Log Tooltip Detail Mode"
+      },
+      {
+        "command": "aiTokenUsage.setLogStatusDisplayMode",
+        "title": "9Router Monitor Pro: Set 9R Log Status Bar Display Style"
+      },
+      {
+        "command": "aiTokenUsage.setLogTooltipMode",
+        "title": "9Router Monitor Pro: Set 9R Log Tooltip Detail Level"
       }
     ],
     "configuration": {
       "title": "9Router Monitor Pro",
       "properties": {
+        "aiTokenUsage.logTooltipDisplayMode": {
+          "type": "string",
+          "enum": ["all", "summary", "logs"],
+          "default": "all",
+          "description": "9R Log Tooltip content detail level: all (both KPI summary and transactions list), summary (KPI summary table only), logs (transactions list only)."
+        },
+        "aiTokenUsage.logStatusDisplayMode": {
+          "type": "string",
+          "enum": ["minimal", "compact", "detailed"],
+          "default": "minimal",
+          "description": "9R Log Status Bar display style: minimal ($(terminal) 9R Log), compact ($(terminal) 9R Log · 10K), detailed ($(terminal) 9R Log · 10K req · $980)."
+        },
         "aiTokenUsage.tooltipDisplayMode": {
           "type": "string",
           "enum": ["all", "summary", "accounts"],
