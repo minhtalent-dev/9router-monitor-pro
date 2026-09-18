@@ -292,7 +292,7 @@ export function createLogStatusBarTooltip(
 
   if (stats) {
     md.appendMarkdown(
-      '| Total Requests | Prompt In | Cached Tokens | Completion Out | Est. Cost |\n'
+      '| Requests | Input| Cached | Output | Cost |\n'
     );
     md.appendMarkdown('|:---:|:---:|:---:|:---:|:---:|\n');
     const reqStr = (stats.totalRequests ?? 0).toLocaleString();
