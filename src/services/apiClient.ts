@@ -481,7 +481,7 @@ export async function fetchRequestLogs(
   config: ExtensionConfig,
   auth: AuthContext,
   page = 1,
-  limit = 20
+  limit = 50
 ): Promise<RequestLogItem[]> {
   try {
     const target = buildUrl(
@@ -547,7 +547,7 @@ export function isLocalhostUrl(baseUrl: string): boolean {
 }
 
 export function formatRequestLogAsConsoleLine(item: RequestLogItem): string {
-  const timePart = item.timestamp ? item.timestamp.split(' ')[1] || item.timestamp : '00:00:00';
+  const timePart = item.timestamp || '00:00:00';
   const inStr = item.inTokens >= 1000 ? (item.inTokens / 1000).toFixed(1) + 'K' : String(item.inTokens);
   const outStr = item.outTokens >= 1000 ? (item.outTokens / 1000).toFixed(1) + 'K' : String(item.outTokens);
   const isOk = item.status.toLowerCase() === 'ok';
@@ -556,13 +556,21 @@ export function formatRequestLogAsConsoleLine(item: RequestLogItem): string {
   return `[${timePart}] ${statusIcon} ${statusLabel} · ${item.model} · ${item.provider} · IN ${inStr} · OUT ${outStr} · ACC:${item.account}`;
 }
 
+export interface ConsoleStreamOptions {
+  pollIntervalMs?: number;
+  initialLimit?: number;
+}
+
 export function openConsoleLogStream(
   config: ExtensionConfig,
   auth: AuthContext,
   onEvent: (msg: ConsoleStreamMessage) => void,
   onError: (err: Error) => void,
-  onSystem?: (msg: string) => void
+  onSystem?: (msg: string) => void,
+  options?: ConsoleStreamOptions
 ): () => void {
+  const pollIntervalMs = options?.pollIntervalMs ?? 2500;
+  const initialLimit = options?.initialLimit ?? 500;
   let isAborted = false;
   let pollTimer: NodeJS.Timeout | undefined;
   let watchdogTimer: NodeJS.Timeout | undefined;
@@ -574,7 +582,7 @@ export function openConsoleLogStream(
 
   const startTunnelPolling = async () => {
     try {
-      const initialLogs = await fetchRequestLogs(config, auth, 1, 50);
+      const initialLogs = await fetchRequestLogs(config, auth, 1, initialLimit);
       if (isAborted) return;
       // Reverse so oldest is first
       const chronological = [...initialLogs].reverse();
@@ -585,25 +593,27 @@ export function openConsoleLogStream(
       onEvent({ type: 'init', logs: formatted });
       onSystem?.(`[TUNNEL LIVE] Stream connected. Loaded ${formatted.length} live transactions via Tunnel.`);
 
-      pollTimer = setInterval(async () => {
-        if (isAborted) return;
-        try {
-          const recent = await fetchRequestLogs(config, auth, 1, 20);
+      if (pollIntervalMs > 0) {
+        pollTimer = setInterval(async () => {
           if (isAborted) return;
-          const newItems = [...recent].reverse().filter((it) => !knownKeys.has(it.raw));
-          for (const it of newItems) {
-            knownKeys.add(it.raw);
-            if (knownKeys.size > 2000) {
-              // Keep known set bounded
-              const first = knownKeys.values().next().value;
-              if (first) knownKeys.delete(first);
+          try {
+            const recent = await fetchRequestLogs(config, auth, 1, 50);
+            if (isAborted) return;
+            const newItems = [...recent].reverse().filter((it) => !knownKeys.has(it.raw));
+            for (const it of newItems) {
+              knownKeys.add(it.raw);
+              if (knownKeys.size > 2000) {
+                // Keep known set bounded
+                const first = knownKeys.values().next().value;
+                if (first) knownKeys.delete(first);
+              }
+              onEvent({ type: 'line', line: formatRequestLogAsConsoleLine(it) });
             }
-            onEvent({ type: 'line', line: formatRequestLogAsConsoleLine(it) });
+          } catch (pollErr) {
+            logError('TunnelPoll', 'Polling error:', pollErr);
           }
-        } catch (pollErr) {
-          logError('TunnelPoll', 'Polling error:', pollErr);
-        }
-      }, 2500);
+        }, pollIntervalMs);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       logError('TunnelPoll', 'Initial fetch error:', err);

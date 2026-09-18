@@ -1009,6 +1009,83 @@ export function getWebviewContent(
   .log-error { color: #f85149; font-weight: 600; }
   .log-default { color: #c9d1d9; }
   .log-system { color: #8b949e; font-style: italic; }
+
+  /* Pagination & Toolbar Controls */
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0;
+    padding: 4px 0;
+    flex-wrap: wrap;
+  }
+  .page-info {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 0 4px;
+    font-weight: 500;
+  }
+  .toolbar-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .toolbar-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .toolbar-select {
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+  }
+  .toolbar-select:focus {
+    border-color: var(--blue);
+  }
+  .toolbar-date {
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    padding: 3px 6px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    outline: none;
+    color-scheme: dark;
+  }
+  .toolbar-date:focus {
+    border-color: var(--blue);
+  }
+  .btn-xs {
+    padding: 2px 8px;
+    font-size: 11px;
+    min-width: 24px;
+    height: 24px;
+    line-height: 18px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+  }
+  .btn-xs:hover {
+    border-color: var(--blue);
+  }
+  .btn-xs.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+  }
+  .btn-xs:disabled, .btn-sm:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 </style>
 </head>
 <body>
@@ -1142,7 +1219,32 @@ export function getWebviewContent(
       <div class="analytics-header">
         <div class="analytics-title">
           <span style="font-size: 15px; font-weight: 600;">🕒 Recent Requests</span>
-          <span style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">Last 20 transactions</span>
+        </div>
+        <div class="toolbar-group">
+          <span class="toolbar-label">Limit:</span>
+          <select id="analyticsLimitSelect" class="toolbar-select">
+            <option value="20">20</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+            <option value="500">500</option>
+          </select>
+        </div>
+        <div class="toolbar-group">
+          <span class="toolbar-label">Date:</span>
+          <input type="date" id="analyticsDatePicker" class="toolbar-date" />
+          <button id="btnAnalyticsToday" class="btn btn-xs">Today</button>
+          <button id="btnAnalyticsAll" class="btn btn-xs active">All</button>
+        </div>
+        <div class="toolbar-group">
+          <span class="toolbar-label">Reload:</span>
+          <select id="analyticsIntervalSelect" class="toolbar-select">
+            <option value="0" selected>Off</option>
+            <option value="5000">5s</option>
+            <option value="10000">10s</option>
+            <option value="30000">30s</option>
+            <option value="60000">60s</option>
+          </select>
         </div>
         <button id="btnRefreshAnalytics" class="btn btn-sm">⟳ Refresh Analytics</button>
       </div>
@@ -1165,6 +1267,13 @@ export function getWebviewContent(
           </tbody>
         </table>
       </div>
+      <div class="pagination-bar" id="analyticsPaginationBar">
+        <button id="btnAnalyticsFirst" class="btn btn-xs" title="First Page">⏮ First</button>
+        <button id="btnAnalyticsPrev" class="btn btn-xs" title="Previous Page">◀ Prev</button>
+        <span id="analyticsPageInfo" class="page-info">Page 1 / 1 (0 requests)</span>
+        <button id="btnAnalyticsNext" class="btn btn-xs" title="Next Page">Next ▶</button>
+        <button id="btnAnalyticsLast" class="btn btn-xs" title="Last Page">Last ⏭</button>
+      </div>
     </div>
   </div>
 
@@ -1177,11 +1286,54 @@ export function getWebviewContent(
       <label class="console-label">
         <input type="checkbox" id="chkAutoScroll" checked /> Auto-scroll
       </label>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Logs:</span>
+        <select id="consoleLimitSelect" class="toolbar-select">
+          <option value="100">100</option>
+          <option value="200">200</option>
+          <option value="500" selected>500</option>
+          <option value="1000">1000</option>
+          <option value="5000">5000</option>
+        </select>
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Date:</span>
+        <input type="date" id="consoleDatePicker" class="toolbar-date" />
+        <button id="btnConsoleToday" class="btn btn-xs">Today</button>
+        <button id="btnConsoleAll" class="btn btn-xs active">All</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="toolbar-label">Reload:</span>
+        <select id="consoleIntervalSelect" class="toolbar-select">
+          <option value="1000">1s</option>
+          <option value="2000">2s</option>
+          <option value="2500" selected>2.5s</option>
+          <option value="3000">3s</option>
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="0">Off</option>
+        </select>
+      </div>
       <div class="console-filter-box">
         <input type="text" id="txtLogFilter" placeholder="Filter logs (e.g. gpt-4, DONE, error)..." class="search-input" />
       </div>
       <span id="logCountBadge" class="badge">0 logs</span>
       <span id="streamStatusBadge" class="badge" style="background:#238636;color:#fff;margin-left:8px;">● Connecting...</span>
+    </div>
+    <div class="pagination-bar" id="consolePaginationBar">
+      <button id="btnConsoleFirst" class="btn btn-xs" title="First Page">⏮ First</button>
+      <button id="btnConsolePrev" class="btn btn-xs" title="Previous Page">◀ Prev</button>
+      <span id="consolePageInfo" class="page-info">Page 1 / 1 (0 logs)</span>
+      <button id="btnConsoleNext" class="btn btn-xs" title="Next Page">Next ▶</button>
+      <button id="btnConsoleLast" class="btn btn-xs" title="Last Page">Last ⏭</button>
+      <div class="toolbar-group" style="margin-left:auto;">
+        <span class="toolbar-label">Per page:</span>
+        <select id="consolePageSizeSelect" class="toolbar-select">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="200">200</option>
+        </select>
+      </div>
     </div>
     <div id="terminalContainer" class="terminal-box">
       <div id="terminalEmptyHint" class="terminal-placeholder" style="color:#8b949e;padding:12px;font-style:italic;">Connecting to 9Router Live Console stream... Waiting for incoming logs.</div>
@@ -1199,8 +1351,22 @@ export function getWebviewContent(
     // Tab state & DOM elements
     let activeTab = '${initialTab}';
     let isPaused = false;
+
+    // Console Log State (Newest first)
     let allLogLines = [];
-    const maxLogs = 500;
+    let consoleLogLimit = 500;
+    let consolePageSize = 100;
+    let consoleCurrentPage = 1;
+    let consoleDateMode = 'all'; // 'today' | 'all' | 'custom'
+    let consoleIntervalMs = 2500;
+
+    // Analytics State
+    let allAnalyticsLogs = [];
+    let analyticsLimit = 50;
+    let analyticsPageSize = 20;
+    let analyticsCurrentPage = 1;
+    let analyticsDateMode = 'all'; // 'today' | 'all' | 'custom'
+    let analyticsTimer = null;
 
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabProviders = document.getElementById('tab-providers');
@@ -1215,6 +1381,62 @@ export function getWebviewContent(
     const txtLogFilter = document.getElementById('txtLogFilter');
     const logCountBadge = document.getElementById('logCountBadge');
     const btnRefreshAnalytics = document.getElementById('btnRefreshAnalytics');
+
+    function getTodayIso() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
+    function getDateVariants(isoDate) {
+      if (!isoDate || !isoDate.includes('-')) return [];
+      const parts = isoDate.split('-');
+      const y = parts[0];
+      const m = parts[1];
+      const d = parts[2];
+      return [
+        y + '-' + m + '-' + d,
+        d + '-' + m + '-' + y,
+        d + '/' + m + '/' + y,
+        y + '/' + m + '/' + d,
+        d + '.' + m + '.' + y,
+        m + '/' + d + '/' + y
+      ];
+    }
+
+    function matchesDate(text, selectedIsoDate, isTodayMode) {
+      if (!selectedIsoDate) return true;
+      const variants = getDateVariants(selectedIsoDate);
+      for (let i = 0; i < variants.length; i++) {
+        if (text.includes(variants[i])) return true;
+      }
+      if (isTodayMode) {
+        const hasOtherYear = /\b20\d\d\b/.test(text);
+        if (!hasOtherYear) return true;
+      }
+      return false;
+    }
+
+    // Midnight watch timer
+    let currentMidnightDay = getTodayIso();
+    setInterval(() => {
+      const nowDay = getTodayIso();
+      if (nowDay !== currentMidnightDay) {
+        currentMidnightDay = nowDay;
+        if (consoleDateMode === 'today') {
+          const dp = document.getElementById('consoleDatePicker');
+          if (dp) dp.value = nowDay;
+          renderLogs();
+        }
+        if (analyticsDateMode === 'today') {
+          const adp = document.getElementById('analyticsDatePicker');
+          if (adp) adp.value = nowDay;
+          renderAnalyticsTable();
+        }
+      }
+    }, 30000);
 
     function switchTab(newTab) {
       if (activeTab === newTab) return;
@@ -1239,12 +1461,16 @@ export function getWebviewContent(
           streamBadge.textContent = '● Connecting...';
           streamBadge.style.background = '#238636';
         }
-        vscode.postMessage({ command: 'startConsoleStream' });
+        vscode.postMessage({
+          command: 'startConsoleStream',
+          intervalMs: consoleIntervalMs,
+          initialLimit: consoleLogLimit
+        });
         if (chkAutoScroll && chkAutoScroll.checked && !isPaused && terminalContainer) {
-          terminalContainer.scrollTop = terminalContainer.scrollHeight;
+          terminalContainer.scrollTop = 0;
         }
       } else if (activeTab === 'analytics') {
-        vscode.postMessage({ command: 'fetchAnalytics' });
+        vscode.postMessage({ command: 'fetchAnalytics', limit: analyticsLimit, page: 1 });
       }
     }
 
@@ -1260,9 +1486,13 @@ export function getWebviewContent(
         streamBadge.textContent = '● Connecting...';
         streamBadge.style.background = '#238636';
       }
-      vscode.postMessage({ command: 'startConsoleStream' });
+      vscode.postMessage({
+        command: 'startConsoleStream',
+        intervalMs: consoleIntervalMs,
+        initialLimit: consoleLogLimit
+      });
     } else if (activeTab === 'analytics') {
-      vscode.postMessage({ command: 'fetchAnalytics' });
+      vscode.postMessage({ command: 'fetchAnalytics', limit: analyticsLimit, page: 1 });
     }
 
     function escapeHtml(str) {
@@ -1285,7 +1515,9 @@ export function getWebviewContent(
     function formatLogLine(text) {
       const raw = text == null ? '' : String(text);
       const escaped = escapeHtml(raw);
-      if (raw.includes('DONE ')) {
+      if (raw.startsWith('[SYSTEM]') || raw.includes('[TUNNEL LIVE]') || raw.includes('[INIT]') || raw.includes('[SOCKET]') || raw.includes('[WATCHDOG]')) {
+        return '<span class="log-system">ℹ ' + escaped + '</span>';
+      } else if (raw.includes('DONE ')) {
         return '<span class="log-done">' + escaped + '</span>';
       } else if (raw.includes('POST ')) {
         return '<span class="log-post">' + escaped + '</span>';
@@ -1299,54 +1531,127 @@ export function getWebviewContent(
       return '<span class="log-default">' + escaped + '</span>';
     }
 
+    function getFilteredLogs() {
+      const filter = (txtLogFilter ? txtLogFilter.value : '').trim().toLowerCase();
+      const datePicker = document.getElementById('consoleDatePicker');
+      const selectedDate = datePicker ? datePicker.value : '';
+      const isTodayMode = consoleDateMode === 'today';
+
+      return allLogLines.filter(line => {
+        if (filter && !line.toLowerCase().includes(filter)) {
+          return false;
+        }
+        if (consoleDateMode === 'all') {
+          return true;
+        }
+        return matchesDate(line, selectedDate, isTodayMode);
+      });
+    }
+
     function renderLogs() {
       if (!terminalContainer) return;
-      const filter = (txtLogFilter ? txtLogFilter.value : '').trim().toLowerCase();
-      let filtered = allLogLines;
-      if (filter) {
-        filtered = allLogLines.filter(l => l.toLowerCase().includes(filter));
-      }
+      const filtered = getFilteredLogs();
+      const totalLogs = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalLogs / consolePageSize));
+
+      if (consoleCurrentPage > totalPages) consoleCurrentPage = totalPages;
+      if (consoleCurrentPage < 1) consoleCurrentPage = 1;
+
       if (logCountBadge) {
-        logCountBadge.textContent = filtered.length + ' logs';
+        logCountBadge.textContent = totalLogs + ' logs';
       }
-      if (filtered.length === 0) {
-        if (!filter) {
+
+      const pageInfo = document.getElementById('consolePageInfo');
+      if (pageInfo) {
+        pageInfo.textContent = 'Page ' + consoleCurrentPage + ' / ' + totalPages + ' (' + totalLogs + ' logs)';
+      }
+
+      const btnFirst = document.getElementById('btnConsoleFirst');
+      const btnPrev = document.getElementById('btnConsolePrev');
+      const btnNext = document.getElementById('btnConsoleNext');
+      const btnLast = document.getElementById('btnConsoleLast');
+      if (btnFirst) btnFirst.disabled = consoleCurrentPage <= 1;
+      if (btnPrev) btnPrev.disabled = consoleCurrentPage <= 1;
+      if (btnNext) btnNext.disabled = consoleCurrentPage >= totalPages;
+      if (btnLast) btnLast.disabled = consoleCurrentPage >= totalPages;
+
+      if (totalLogs === 0) {
+        const filter = (txtLogFilter ? txtLogFilter.value : '').trim();
+        if (!filter && consoleDateMode === 'all') {
           terminalContainer.innerHTML = '<div id="terminalEmptyHint" class="terminal-placeholder" style="color:#8b949e;padding:12px;font-style:italic;">Connecting to 9Router Live Console stream... Waiting for incoming logs.</div>';
         } else {
           terminalContainer.innerHTML = '<div class="terminal-placeholder" style="color:#8b949e;padding:12px;font-style:italic;">No logs match current filter.</div>';
         }
-      } else {
-        terminalContainer.innerHTML = filtered.map(l => '<div class="terminal-line">' + formatLogLine(l) + '</div>').join('');
+        return;
       }
-      if (chkAutoScroll && chkAutoScroll.checked && !isPaused) {
-        terminalContainer.scrollTop = terminalContainer.scrollHeight;
+
+      const startIdx = (consoleCurrentPage - 1) * consolePageSize;
+      const pageItems = filtered.slice(startIdx, startIdx + consolePageSize);
+      terminalContainer.innerHTML = pageItems.map(l => '<div class="terminal-line">' + formatLogLine(l) + '</div>').join('');
+
+      if (chkAutoScroll && chkAutoScroll.checked && !isPaused && consoleCurrentPage === 1) {
+        terminalContainer.scrollTop = 0;
       }
     }
 
-    function appendSingleLog(line) {
-      if (!terminalContainer) return;
-      const emptyHint = terminalContainer.querySelector('.terminal-placeholder');
-      if (emptyHint) {
-        emptyHint.remove();
+    function getFilteredAnalyticsLogs() {
+      const datePicker = document.getElementById('analyticsDatePicker');
+      const selectedDate = datePicker ? datePicker.value : '';
+      const isTodayMode = analyticsDateMode === 'today';
+
+      return allAnalyticsLogs.filter(item => {
+        if (analyticsDateMode === 'all') return true;
+        const t = (item.timestamp || '') + ' ' + (item.raw || '');
+        return matchesDate(t, selectedDate, isTodayMode);
+      });
+    }
+
+    function renderAnalyticsTable() {
+      const tbody = document.getElementById('analyticsTableBody');
+      if (!tbody) return;
+
+      const filtered = getFilteredAnalyticsLogs();
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / analyticsPageSize));
+
+      if (analyticsCurrentPage > totalPages) analyticsCurrentPage = totalPages;
+      if (analyticsCurrentPage < 1) analyticsCurrentPage = 1;
+
+      const pageInfo = document.getElementById('analyticsPageInfo');
+      if (pageInfo) {
+        pageInfo.textContent = 'Page ' + analyticsCurrentPage + ' / ' + totalPages + ' (' + total + ' requests)';
       }
-      const filter = (txtLogFilter ? txtLogFilter.value : '').trim().toLowerCase();
-      const match = !filter || line.toLowerCase().includes(filter);
-      if (match) {
-        const div = document.createElement('div');
-        div.className = 'terminal-line';
-        div.innerHTML = formatLogLine(line);
-        terminalContainer.appendChild(div);
-        if (chkAutoScroll && chkAutoScroll.checked && !isPaused) {
-          terminalContainer.scrollTop = terminalContainer.scrollHeight;
-        }
+
+      const btnFirst = document.getElementById('btnAnalyticsFirst');
+      const btnPrev = document.getElementById('btnAnalyticsPrev');
+      const btnNext = document.getElementById('btnAnalyticsNext');
+      const btnLast = document.getElementById('btnAnalyticsLast');
+      if (btnFirst) btnFirst.disabled = analyticsCurrentPage <= 1;
+      if (btnPrev) btnPrev.disabled = analyticsCurrentPage <= 1;
+      if (btnNext) btnNext.disabled = analyticsCurrentPage >= totalPages;
+      if (btnLast) btnLast.disabled = analyticsCurrentPage >= totalPages;
+
+      if (total === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="analytics-empty">No recent requests recorded for selected filter.</td></tr>';
+        return;
       }
-      while (terminalContainer.children.length > maxLogs) {
-        terminalContainer.removeChild(terminalContainer.firstChild);
-      }
-      if (logCountBadge) {
-        const count = filter ? terminalContainer.children.length : allLogLines.length;
-        logCountBadge.textContent = count + ' logs';
-      }
+
+      const startIdx = (analyticsCurrentPage - 1) * analyticsPageSize;
+      const pageItems = filtered.slice(startIdx, startIdx + analyticsPageSize);
+
+      tbody.innerHTML = pageItems.map(log => {
+        const statusStr = String(log.status || '');
+        const isSuccess = statusStr.startsWith('2') || statusStr.toLowerCase() === 'ok';
+        const statusClass = isSuccess ? 'success' : 'error';
+        return '<tr>' +
+          '<td>' + escapeHtml(log.timestamp || '') + '</td>' +
+          '<td><strong>' + escapeHtml(log.model || '') + '</strong></td>' +
+          '<td><span class="badge provider">' + escapeHtml(log.provider || '') + '</span></td>' +
+          '<td>' + escapeHtml(log.account || '') + '</td>' +
+          '<td>' + formatCompactNum(log.inTokens || 0) + ' / ' + formatCompactNum(log.outTokens || 0) + '</td>' +
+          '<td><span class="status-badge ' + statusClass + '">' + escapeHtml(statusStr) + '</span></td>' +
+        '</tr>';
+      }).join('');
     }
 
     if (btnPause) {
@@ -1360,6 +1665,7 @@ export function getWebviewContent(
     if (btnClearLogs) {
       btnClearLogs.addEventListener('click', () => {
         allLogLines = [];
+        consoleCurrentPage = 1;
         renderLogs();
         vscode.postMessage({ command: 'clearConsoleLogs' });
       });
@@ -1372,13 +1678,188 @@ export function getWebviewContent(
           streamBadge.textContent = '● Reconnecting...';
           streamBadge.style.background = '#d29922';
         }
-        vscode.postMessage({ command: 'startConsoleStream' });
+        vscode.postMessage({
+          command: 'startConsoleStream',
+          intervalMs: consoleIntervalMs,
+          initialLimit: consoleLogLimit
+        });
       });
     }
 
     if (txtLogFilter) {
       txtLogFilter.addEventListener('input', () => {
+        consoleCurrentPage = 1;
         renderLogs();
+      });
+    }
+
+    // Console Toolbar Listeners
+    const consoleLimitSelect = document.getElementById('consoleLimitSelect');
+    if (consoleLimitSelect) {
+      consoleLimitSelect.addEventListener('change', (e) => {
+        consoleLogLimit = parseInt(e.target.value, 10);
+        if (allLogLines.length > consoleLogLimit) {
+          allLogLines.length = consoleLogLimit;
+        }
+        consoleCurrentPage = 1;
+        renderLogs();
+      });
+    }
+
+    const consoleDatePicker = document.getElementById('consoleDatePicker');
+    const btnConsoleToday = document.getElementById('btnConsoleToday');
+    const btnConsoleAll = document.getElementById('btnConsoleAll');
+
+    if (consoleDatePicker) {
+      consoleDatePicker.value = getTodayIso();
+      consoleDatePicker.addEventListener('change', () => {
+        consoleDateMode = 'custom';
+        btnConsoleToday?.classList.remove('active');
+        btnConsoleAll?.classList.remove('active');
+        consoleCurrentPage = 1;
+        renderLogs();
+      });
+    }
+
+    btnConsoleToday?.addEventListener('click', () => {
+      consoleDateMode = 'today';
+      if (consoleDatePicker) consoleDatePicker.value = getTodayIso();
+      btnConsoleToday.classList.add('active');
+      btnConsoleAll?.classList.remove('active');
+      consoleCurrentPage = 1;
+      renderLogs();
+    });
+
+    btnConsoleAll?.addEventListener('click', () => {
+      consoleDateMode = 'all';
+      btnConsoleAll.classList.add('active');
+      btnConsoleToday?.classList.remove('active');
+      consoleCurrentPage = 1;
+      renderLogs();
+    });
+
+    const consoleIntervalSelect = document.getElementById('consoleIntervalSelect');
+    if (consoleIntervalSelect) {
+      consoleIntervalSelect.addEventListener('change', (e) => {
+        consoleIntervalMs = parseInt(e.target.value, 10);
+        vscode.postMessage({
+          command: 'updateConsoleInterval',
+          intervalMs: consoleIntervalMs,
+          initialLimit: consoleLogLimit
+        });
+      });
+    }
+
+    const consolePageSizeSelect = document.getElementById('consolePageSizeSelect');
+    if (consolePageSizeSelect) {
+      consolePageSizeSelect.addEventListener('change', (e) => {
+        consolePageSize = parseInt(e.target.value, 10);
+        consoleCurrentPage = 1;
+        renderLogs();
+      });
+    }
+
+    document.getElementById('btnConsoleFirst')?.addEventListener('click', () => {
+      consoleCurrentPage = 1;
+      renderLogs();
+    });
+    document.getElementById('btnConsolePrev')?.addEventListener('click', () => {
+      if (consoleCurrentPage > 1) {
+        consoleCurrentPage--;
+        renderLogs();
+      }
+    });
+    document.getElementById('btnConsoleNext')?.addEventListener('click', () => {
+      consoleCurrentPage++;
+      renderLogs();
+    });
+    document.getElementById('btnConsoleLast')?.addEventListener('click', () => {
+      const filtered = getFilteredLogs();
+      consoleCurrentPage = Math.max(1, Math.ceil(filtered.length / consolePageSize));
+      renderLogs();
+    });
+
+    // Analytics Toolbar Listeners
+    const analyticsLimitSelect = document.getElementById('analyticsLimitSelect');
+    if (analyticsLimitSelect) {
+      analyticsLimitSelect.addEventListener('change', (e) => {
+        analyticsLimit = parseInt(e.target.value, 10);
+        analyticsCurrentPage = 1;
+        vscode.postMessage({ command: 'fetchAnalytics', limit: analyticsLimit, page: 1 });
+      });
+    }
+
+    const analyticsDatePicker = document.getElementById('analyticsDatePicker');
+    const btnAnalyticsToday = document.getElementById('btnAnalyticsToday');
+    const btnAnalyticsAll = document.getElementById('btnAnalyticsAll');
+
+    if (analyticsDatePicker) {
+      analyticsDatePicker.value = getTodayIso();
+      analyticsDatePicker.addEventListener('change', () => {
+        analyticsDateMode = 'custom';
+        btnAnalyticsToday?.classList.remove('active');
+        btnAnalyticsAll?.classList.remove('active');
+        analyticsCurrentPage = 1;
+        renderAnalyticsTable();
+      });
+    }
+
+    btnAnalyticsToday?.addEventListener('click', () => {
+      analyticsDateMode = 'today';
+      if (analyticsDatePicker) analyticsDatePicker.value = getTodayIso();
+      btnAnalyticsToday.classList.add('active');
+      btnAnalyticsAll?.classList.remove('active');
+      analyticsCurrentPage = 1;
+      renderAnalyticsTable();
+    });
+
+    btnAnalyticsAll?.addEventListener('click', () => {
+      analyticsDateMode = 'all';
+      btnAnalyticsAll.classList.add('active');
+      btnAnalyticsToday?.classList.remove('active');
+      analyticsCurrentPage = 1;
+      renderAnalyticsTable();
+    });
+
+    document.getElementById('btnAnalyticsFirst')?.addEventListener('click', () => {
+      analyticsCurrentPage = 1;
+      renderAnalyticsTable();
+    });
+    document.getElementById('btnAnalyticsPrev')?.addEventListener('click', () => {
+      if (analyticsCurrentPage > 1) {
+        analyticsCurrentPage--;
+        renderAnalyticsTable();
+      }
+    });
+    document.getElementById('btnAnalyticsNext')?.addEventListener('click', () => {
+      analyticsCurrentPage++;
+      renderAnalyticsTable();
+    });
+    document.getElementById('btnAnalyticsLast')?.addEventListener('click', () => {
+      const filtered = getFilteredAnalyticsLogs();
+      analyticsCurrentPage = Math.max(1, Math.ceil(filtered.length / analyticsPageSize));
+      renderAnalyticsTable();
+    });
+
+    function setupAnalyticsInterval(ms) {
+      if (analyticsTimer) {
+        clearInterval(analyticsTimer);
+        analyticsTimer = null;
+      }
+      if (ms > 0) {
+        analyticsTimer = setInterval(() => {
+          if (activeTab === 'analytics') {
+            vscode.postMessage({ command: 'fetchAnalytics', limit: analyticsLimit, page: 1 });
+          }
+        }, ms);
+      }
+    }
+
+    const analyticsIntervalSelect = document.getElementById('analyticsIntervalSelect');
+    if (analyticsIntervalSelect) {
+      analyticsIntervalSelect.addEventListener('change', (e) => {
+        const ms = parseInt(e.target.value, 10);
+        setupAnalyticsInterval(ms);
       });
     }
 
@@ -1386,7 +1867,7 @@ export function getWebviewContent(
       btnRefreshAnalytics.addEventListener('click', () => {
         btnRefreshAnalytics.disabled = true;
         btnRefreshAnalytics.textContent = '⟳ Loading...';
-        vscode.postMessage({ command: 'fetchAnalytics' });
+        vscode.postMessage({ command: 'fetchAnalytics', limit: analyticsLimit, page: 1 });
       });
     }
 
@@ -1411,17 +1892,10 @@ export function getWebviewContent(
             streamBadge.style.background = '#238636';
           }
         }
-        const div = document.createElement('div');
-        div.className = 'terminal-line';
-        div.innerHTML = '<span class="log-system">ℹ ' + escapeHtml(message.message) + '</span>';
-        if (terminalContainer) {
-          const placeholder = terminalContainer.querySelector('.terminal-placeholder');
-          if (placeholder) placeholder.remove();
-          terminalContainer.appendChild(div);
-          if (chkAutoScroll && chkAutoScroll.checked && !isPaused) {
-            terminalContainer.scrollTop = terminalContainer.scrollHeight;
-          }
-        }
+        const sysLine = '[SYSTEM] ' + message.message;
+        allLogLines.unshift(sysLine);
+        if (allLogLines.length > consoleLogLimit) allLogLines.pop();
+        renderLogs();
       } else if (message.command === 'consoleLogError') {
         const streamBadge = document.getElementById('streamStatusBadge');
         if (streamBadge) {
@@ -1429,9 +1903,9 @@ export function getWebviewContent(
           streamBadge.style.background = '#da3633';
         }
         const errLine = '[STREAM ERROR] ' + (message.error || 'Connection failed');
-        allLogLines.push(errLine);
-        if (allLogLines.length > maxLogs) allLogLines.shift();
-        appendSingleLog(errLine);
+        allLogLines.unshift(errLine);
+        if (allLogLines.length > consoleLogLimit) allLogLines.pop();
+        renderLogs();
       } else if (message.command === 'consoleLogEvent' && message.event) {
         const streamBadge = document.getElementById('streamStatusBadge');
         if (streamBadge) {
@@ -1442,24 +1916,33 @@ export function getWebviewContent(
         }
         const ev = message.event;
         if (ev.type === 'init') {
-          allLogLines = (ev.logs || []).slice(-maxLogs);
+          allLogLines = (ev.logs || []).slice().reverse();
+          if (allLogLines.length > consoleLogLimit) {
+            allLogLines.length = consoleLogLimit;
+          }
+          consoleCurrentPage = 1;
           renderLogs();
         } else if (ev.type === 'line') {
           if (!isPaused && typeof ev.line === 'string') {
-            allLogLines.push(ev.line);
-            if (allLogLines.length > maxLogs) allLogLines.shift();
-            appendSingleLog(ev.line);
+            allLogLines.unshift(ev.line);
+            if (allLogLines.length > consoleLogLimit) {
+              allLogLines.pop();
+            }
+            renderLogs();
           }
         } else if (ev.type === 'lines') {
           if (!isPaused && Array.isArray(ev.lines)) {
-            ev.lines.forEach(l => {
-              allLogLines.push(l);
-              if (allLogLines.length > maxLogs) allLogLines.shift();
-            });
+            for (let i = ev.lines.length - 1; i >= 0; i--) {
+              allLogLines.unshift(ev.lines[i]);
+            }
+            if (allLogLines.length > consoleLogLimit) {
+              allLogLines.length = consoleLogLimit;
+            }
             renderLogs();
           }
         } else if (ev.type === 'clear') {
           allLogLines = [];
+          consoleCurrentPage = 1;
           renderLogs();
         }
       } else if (message.command === 'syncData' && message.data) {
@@ -1540,26 +2023,8 @@ export function getWebviewContent(
           if (kpiCost) kpiCost.textContent = '$' + Number(s.totalCost || 0).toFixed(4);
         }
         if (Array.isArray(message.logs)) {
-          const tbody = document.getElementById('analyticsTableBody');
-          if (tbody) {
-            if (message.logs.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="6" class="analytics-empty">No recent requests recorded.</td></tr>';
-            } else {
-              tbody.innerHTML = message.logs.map(log => {
-                const statusStr = String(log.status || '');
-                const isSuccess = statusStr.startsWith('2') || statusStr.toLowerCase() === 'ok';
-                const statusClass = isSuccess ? 'success' : 'error';
-                return '<tr>' +
-                  '<td>' + escapeHtml(log.timestamp || '') + '</td>' +
-                  '<td><strong>' + escapeHtml(log.model || '') + '</strong></td>' +
-                  '<td><span class="badge provider">' + escapeHtml(log.provider || '') + '</span></td>' +
-                  '<td>' + escapeHtml(log.account || '') + '</td>' +
-                  '<td>' + formatCompactNum(log.inTokens || 0) + ' / ' + formatCompactNum(log.outTokens || 0) + '</td>' +
-                  '<td><span class="status-badge ' + statusClass + '">' + escapeHtml(statusStr) + '</span></td>' +
-                '</tr>';
-              }).join('');
-            }
-          }
+          allAnalyticsLogs = message.logs;
+          renderAnalyticsTable();
         }
       }
     });

@@ -148,6 +148,10 @@ export async function showDetails(
       statusMode?: 'compact' | 'detailed' | 'minimal';
       tooltipMode?: 'all' | 'summary' | 'accounts';
       intervalSeconds?: number;
+      intervalMs?: number;
+      initialLimit?: number;
+      limit?: number;
+      page?: number;
     }) => {
       if (msg.command === 'refresh') {
         await onRefresh(true);
@@ -313,6 +317,8 @@ export async function showDetails(
             return;
           }
           if (detailsPanel) {
+            const intervalMs = typeof msg.intervalMs === 'number' ? msg.intervalMs : 2500;
+            const initialLimit = typeof msg.initialLimit === 'number' ? msg.initialLimit : 500;
             activeLogStreamAbort = openConsoleLogStream(
               cfg,
               auth,
@@ -334,11 +340,48 @@ export async function showDetails(
                   command: 'consoleLogSystem',
                   message: systemMsg
                 });
-              }
+              },
+              { pollIntervalMs: intervalMs, initialLimit }
             );
           }
         } finally {
           isStartingConsoleStream = false;
+        }
+      } else if (msg.command === 'updateConsoleInterval') {
+        const intervalMs = typeof msg.intervalMs === 'number' ? msg.intervalMs : 2500;
+        const initialLimit = typeof msg.initialLimit === 'number' ? msg.initialLimit : 500;
+        if (activeLogStreamAbort) {
+          activeLogStreamAbort();
+          activeLogStreamAbort = undefined;
+        }
+        if (intervalMs > 0 && detailsPanel) {
+          const auth = await getAuthContext(context, cfg);
+          if (auth) {
+            activeLogStreamAbort = openConsoleLogStream(
+              cfg,
+              auth,
+              (event) => {
+                detailsPanel?.webview.postMessage({
+                  command: 'consoleLogEvent',
+                  event
+                });
+              },
+              (err) => {
+                logError('Dashboard', 'Console stream error: ' + err.message, err);
+                detailsPanel?.webview.postMessage({
+                  command: 'consoleLogError',
+                  error: err.message
+                });
+              },
+              (systemMsg) => {
+                detailsPanel?.webview.postMessage({
+                  command: 'consoleLogSystem',
+                  message: systemMsg
+                });
+              },
+              { pollIntervalMs: intervalMs, initialLimit }
+            );
+          }
         }
       } else if (msg.command === 'stopConsoleStream') {
         if (activeLogStreamAbort) {
@@ -353,9 +396,11 @@ export async function showDetails(
       } else if (msg.command === 'fetchAnalytics') {
         const auth = await getAuthContext(context, cfg);
         if (auth) {
+          const page = typeof msg.page === 'number' ? msg.page : 1;
+          const limit = typeof msg.limit === 'number' ? msg.limit : 50;
           const [stats, logs] = await Promise.all([
             fetchUsageStats(cfg, auth),
-            fetchRequestLogs(cfg, auth, 1, 20)
+            fetchRequestLogs(cfg, auth, page, limit)
           ]);
           detailsPanel?.webview.postMessage({
             command: 'analyticsData',
