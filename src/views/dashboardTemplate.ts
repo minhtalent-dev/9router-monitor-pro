@@ -1008,6 +1008,7 @@ export function getWebviewContent(
   .log-warn { color: #d29922; font-weight: 500; }
   .log-error { color: #f85149; font-weight: 600; }
   .log-default { color: #c9d1d9; }
+  .log-system { color: #8b949e; font-style: italic; }
 </style>
 </head>
 <body>
@@ -1395,6 +1396,26 @@ export function getWebviewContent(
 
       if (message.command === 'switchTab' && message.tab) {
         switchTab(message.tab);
+      } else if (message.command === 'consoleLogSystem' && message.message) {
+        console.log('[9R-SYSTEM]', message.message);
+        if (message.message.includes('[HTTP 200]')) {
+          const streamBadge = document.getElementById('streamStatusBadge');
+          if (streamBadge) {
+            streamBadge.textContent = '● Live';
+            streamBadge.style.background = '#238636';
+          }
+        }
+        const div = document.createElement('div');
+        div.className = 'terminal-line';
+        div.innerHTML = '<span class="log-system">ℹ ' + escapeHtml(message.message) + '</span>';
+        if (terminalContainer) {
+          const placeholder = terminalContainer.querySelector('.terminal-placeholder');
+          if (placeholder) placeholder.remove();
+          terminalContainer.appendChild(div);
+          if (chkAutoScroll && chkAutoScroll.checked && !isPaused) {
+            terminalContainer.scrollTop = terminalContainer.scrollHeight;
+          }
+        }
       } else if (message.command === 'consoleLogError') {
         const streamBadge = document.getElementById('streamStatusBadge');
         if (streamBadge) {

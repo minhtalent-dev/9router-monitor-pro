@@ -82,6 +82,10 @@
       {
         "command": "aiTokenUsage.toggleLogStatusBar",
         "title": "9Router Monitor Pro: Toggle Console Log Status Bar Item"
+      },
+      {
+        "command": "aiTokenUsage.showDebugLogs",
+        "title": "9Router Monitor Pro: Show Debug Logs"
       }
     ],
     "configuration": {

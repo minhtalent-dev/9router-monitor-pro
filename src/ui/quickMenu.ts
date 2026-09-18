@@ -606,6 +606,12 @@ export async function openQuickMenu(
       action: 'toggleLogStatusBar'
     },
     {
+      label: '$(output) View Live Debug Output Logs',
+      description: 'Open 9Router Monitor Pro Debug Output Channel',
+      detail: 'View detailed diagnostic logs and HTTP/SSE socket traces',
+      action: 'showDebugLogs'
+    },
+    {
       label: '$(refresh) Refresh Data',
       description: 'Fetch latest quota from 9Router',
       detail: 'Fetch latest quota and provider stats immediately',
@@ -682,6 +688,9 @@ export async function openQuickMenu(
       );
       break;
     }
+    case 'showDebugLogs':
+      await vscode.commands.executeCommand('aiTokenUsage.showDebugLogs');
+      break;
     case 'refresh':
       await onRefresh(true);
       break;

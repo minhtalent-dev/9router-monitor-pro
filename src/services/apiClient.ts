@@ -25,6 +25,7 @@ import {
   loginDashboard,
   SECRET_SESSION_TOKEN
 } from './authManager';
+import { logDebug, logError } from '../utils/logger';
 
 export const usageCache = new Map<string, UsageData>();
 
@@ -539,7 +540,8 @@ export function openConsoleLogStream(
   config: ExtensionConfig,
   auth: AuthContext,
   onEvent: (msg: ConsoleStreamMessage) => void,
-  onError: (err: Error) => void
+  onError: (err: Error) => void,
+  onSystem?: (msg: string) => void
 ): () => void {
   let isAborted = false;
   let reconnectTimer: NodeJS.Timeout | undefined;
@@ -563,6 +565,14 @@ export function openConsoleLogStream(
       onError(err instanceof Error ? err : new Error(String(err)));
       return;
     }
+
+    logDebug('SSE', `Connecting to ${target.toString()}`, {
+      baseUrl: config.baseUrl,
+      hasAuthToken: Boolean(auth.authToken),
+      cliToken: auth.cliToken ? auth.cliToken.slice(0, 6) + '...' : 'none',
+      hasPassword: Boolean(auth.password)
+    });
+    onSystem?.(`[INIT] Connecting to ${target.toString()} (Token: ${auth.cliToken ? auth.cliToken.slice(0, 6) + '...' : 'none'})...`);
 
     const client = target.protocol === 'http:' ? http : https;
     const headers: Record<string, string> = {
@@ -595,7 +605,12 @@ export function openConsoleLogStream(
         headers
       },
       async (res) => {
+        logDebug('SSE', `Response received: HTTP ${res.statusCode} ${res.statusMessage || ''}`);
+        onSystem?.(`[HTTP ${res.statusCode}] Connection established`);
+
         if (res.statusCode === 401) {
+          logError('SSE', `HTTP 401 Unauthorized from ${target.toString()}`);
+          onSystem?.(`[HTTP 401] Unauthorized. Retrying with refreshed credentials...`);
           res.resume();
           if (auth.password) {
             try {
@@ -638,6 +653,7 @@ export function openConsoleLogStream(
 
         let buffer = '';
         res.on('data', (chunk: Buffer) => {
+          logDebug('SSE', `Chunk received: ${chunk.length} bytes`);
           try {
             buffer += chunk.toString('utf-8');
             let boundaryIndex: number;
@@ -661,6 +677,11 @@ export function openConsoleLogStream(
                       'type' in parsed &&
                       ['init', 'line', 'lines', 'clear'].includes(parsed.type)
                     ) {
+                      logDebug('SSE', `Event parsed: ${parsed.type}`, {
+                        logsCount: 'logs' in parsed ? parsed.logs?.length : undefined,
+                        line: 'line' in parsed ? parsed.line?.slice(0, 60) : undefined
+                      });
+                      onSystem?.(`[EVENT] Received: ${parsed.type}${('logs' in parsed && parsed.logs) ? ' (' + parsed.logs.length + ' logs)' : ''}`);
                       onEvent(parsed);
                     }
                   } catch (parseErr) {
@@ -675,18 +696,24 @@ export function openConsoleLogStream(
         });
 
         res.on('end', () => {
+          logDebug('SSE', 'Socket closed / ended');
+          onSystem?.('[SOCKET] Connection closed');
           if (!isAborted) {
             scheduleReconnect();
           }
         });
 
         res.on('close', () => {
+          logDebug('SSE', 'Socket closed / ended');
+          onSystem?.('[SOCKET] Connection closed');
           if (!isAborted) {
             scheduleReconnect();
           }
         });
 
         res.on('error', (err: Error) => {
+          logError('SSE', `Socket error: ${err.message}`, err);
+          onSystem?.(`[ERROR] ${err.message}`);
           if (!isAborted) {
             onError(err);
             scheduleReconnect();
@@ -696,6 +723,8 @@ export function openConsoleLogStream(
     );
 
     req.on('error', (err: Error) => {
+      logError('SSE', `Socket error: ${err.message}`, err);
+      onSystem?.(`[ERROR] ${err.message}`);
       if (!isAborted) {
         onError(err);
         scheduleReconnect();

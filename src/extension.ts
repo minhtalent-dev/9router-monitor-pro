@@ -27,6 +27,7 @@ import {
   toggleTooltipMode
 } from './ui/quickMenu';
 import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
+import { getOutputChannel } from './utils/logger';
 
 let refreshTimer: NodeJS.Timeout | undefined;
 
@@ -84,6 +85,9 @@ export function activate(context: vscode.ExtensionContext): void {
       vscode.window.showInformationMessage(
         `9Router Console Log Status Bar item: ${!current ? 'Enabled' : 'Disabled'}`
       );
+    }),
+    vscode.commands.registerCommand('aiTokenUsage.showDebugLogs', () => {
+      getOutputChannel().show();
     })
   );
 

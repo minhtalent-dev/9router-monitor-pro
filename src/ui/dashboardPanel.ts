@@ -32,6 +32,7 @@ import { displayName, quotaTitle } from '../utils/helpers';
 import { getWebviewContent } from '../views/dashboardTemplate';
 import { renderStatusBar } from './statusBar';
 import { setConnection } from './quickMenu';
+import { logDebug, logError } from '../utils/logger';
 
 let activeLogStreamAbort: (() => void) | undefined;
 let isStartingConsoleStream = false;
@@ -300,8 +301,18 @@ export async function showDetails(
             activeLogStreamAbort();
             activeLogStreamAbort = undefined;
           }
+          logDebug('Dashboard', 'Received startConsoleStream message');
           const auth = await getAuthContext(context, cfg);
-          if (auth && detailsPanel) {
+          if (!auth) {
+            logError('Dashboard', 'No auth context available');
+            detailsPanel?.webview.postMessage({
+              command: 'consoleLogError',
+              error:
+                'Không tìm thấy thông tin xác thực (mật khẩu hoặc CLI Token). Vui lòng bấm Setup Connection.'
+            });
+            return;
+          }
+          if (detailsPanel) {
             activeLogStreamAbort = openConsoleLogStream(
               cfg,
               auth,
@@ -312,10 +323,16 @@ export async function showDetails(
                 });
               },
               (err) => {
-                console.error('Console stream error:', err);
+                logError('Dashboard', 'Console stream error: ' + err.message, err);
                 detailsPanel?.webview.postMessage({
                   command: 'consoleLogError',
                   error: err.message
+                });
+              },
+              (systemMsg) => {
+                detailsPanel?.webview.postMessage({
+                  command: 'consoleLogSystem',
+                  message: systemMsg
                 });
               }
             );
