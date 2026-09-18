@@ -93,7 +93,7 @@ export function createDashboardTooltip(
 
     // Aggregate Summary
     if (showSummary) {
-      md.appendMarkdown('#### 📊 Aggregate Summary\n\n');
+      md.appendMarkdown('#### 🖥️ Aggregate Summary\n\n');
       md.appendMarkdown('| 🤖 Model | 📥 Remaining / Total | 📈 Used | ⏳ Reset | ⚡ Progress |\n');
       md.appendMarkdown('|:---|:---:|:---:|:---:|:---:|\n');
 
