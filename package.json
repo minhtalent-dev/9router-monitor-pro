@@ -125,7 +125,7 @@
           "type": "string",
           "enum": ["minimal", "compact", "detailed"],
           "default": "minimal",
-          "description": "9R Log Status Bar display style: minimal ($(terminal) 9R Log), compact ($(terminal) 9R Log · 10K), detailed ($(terminal) 9R Log · 10K req · $980)."
+          "description": "9R Log Status Bar display style: minimal ($(terminal) 9R Log), compact ($(terminal) 9R Log · 10.1K req · G3.8 🟢), detailed ($(terminal) 9R Log · 10.1K req · $980 · G3.8 7.2K/940 🟢)."
         },
         "aiTokenUsage.tooltipDisplayMode": {
           "type": "string",

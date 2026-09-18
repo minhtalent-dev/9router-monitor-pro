@@ -263,16 +263,16 @@ export async function setLogStatusDisplayMode(
       picked: currentMode === 'minimal'
     },
     {
-      label: '$(symbol-color) Compact',
-      description: '$(terminal) 9R Log · 10K',
-      detail: 'Balanced: displays total requests count',
+      label: '$(symbol-color) Compact (Recommended)',
+      description: '$(terminal) 9R Log · 10.1K req · G3.8 🟢',
+      detail: 'Balanced: total requests count + last active model + health pulse',
       mode: 'compact',
       picked: currentMode === 'compact'
     },
     {
       label: '$(list-flat) Detailed',
-      description: '$(terminal) 9R Log · 10K req · $980',
-      detail: 'Full metrics: displays total requests and rounded cost',
+      description: '$(terminal) 9R Log · 10.1K req · $980 · G3.8 7.2K/940 🟢',
+      detail: 'Full metrics: requests, estimated cost, last model with in/out tokens and health pulse',
       mode: 'detailed',
       picked: currentMode === 'detailed'
     }

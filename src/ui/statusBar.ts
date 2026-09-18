@@ -68,15 +68,65 @@ export function renderStatusBar(
     logItem.tooltip = createLogStatusBarTooltip(stats, logs, limit, tooltipMode);
 
     const logStyle = cfg.logStatusDisplayMode ?? 'minimal';
+    const totalReq = formatCompact(stats?.totalRequests ?? 0);
+    const cost = Math.round(Number(stats?.totalCost || 0));
+    const lastLog = logs && logs.length > 0 ? logs[0] : undefined;
+
+    let pulse = '';
+    let lastModelStr = '';
+    let lastTokensStr = '';
+    let hasRecentError = false;
+
+    if (lastLog) {
+      const isOk =
+        (lastLog.status || '').toLowerCase() === 'ok' ||
+        lastLog.status === '200' ||
+        lastLog.status === 'success';
+      pulse = isOk ? '🟢' : '🔴';
+      hasRecentError = !isOk;
+      lastModelStr = quotaShortName(lastLog.model || '');
+      const inStr = formatCompact(lastLog.inTokens ?? 0);
+      const outStr = formatCompact(lastLog.outTokens ?? 0);
+      lastTokensStr = `${inStr}/${outStr}`;
+    }
+
     if (logStyle === 'compact') {
-      const totalReq = formatCompact(stats?.totalRequests ?? 0);
-      logItem.text = `$(terminal) 9R Log · ${totalReq}`;
+      const parts: string[] = [];
+      if (stats?.totalRequests) {
+        parts.push(`${totalReq} req`);
+      }
+      if (lastModelStr) {
+        parts.push(`${lastModelStr} ${pulse}`.trim());
+      } else if (pulse) {
+        parts.push(pulse);
+      }
+      const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
+      logItem.text = `$(terminal) 9R Log${suffix}`;
     } else if (logStyle === 'detailed') {
-      const totalReq = formatCompact(stats?.totalRequests ?? 0);
-      const cost = Math.round(Number(stats?.totalCost || 0));
-      logItem.text = `$(terminal) 9R Log · ${totalReq} req · $${cost}`;
+      const parts: string[] = [];
+      if (stats?.totalRequests) {
+        parts.push(`${totalReq} req`);
+      }
+      if (stats?.totalCost !== undefined) {
+        parts.push(`$${cost}`);
+      }
+      if (lastModelStr && lastTokensStr) {
+        parts.push(`${lastModelStr} ${lastTokensStr} ${pulse}`.trim());
+      } else if (lastModelStr) {
+        parts.push(`${lastModelStr} ${pulse}`.trim());
+      } else if (pulse) {
+        parts.push(pulse);
+      }
+      const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
+      logItem.text = `$(terminal) 9R Log${suffix}`;
     } else {
       logItem.text = '$(terminal) 9R Log';
+    }
+
+    if (hasRecentError) {
+      logItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+    } else {
+      logItem.backgroundColor = undefined;
     }
   }
 

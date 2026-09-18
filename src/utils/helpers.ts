@@ -67,22 +67,27 @@ export function quotaTitle(name: string): string {
 }
 
 export function quotaShortName(name: string): string {
-  switch (name) {
-    case 'gemini-3.8-flash-high':
-      return 'G3.8';
-    case 'gemini_weekly':
-      return 'GW';
-    case 'claude_gpt_weekly':
-      return 'CW';
-    case 'claude-sonnet-4-6':
-      return 'CS4.6';
-    case 'session':
-      return 'S';
-    case 'weekly':
-      return 'W';
-    default:
-      return name.length > 6 ? name.slice(0, 5) + '…' : name;
-  }
+  const lower = (name || '').toLowerCase();
+  if (lower.includes('gemini-3.8') || lower === 'g3.8') return 'G3.8';
+  if (lower.includes('gemini-3.5')) return 'G3.5';
+  if (lower.includes('gemini-2.5')) return 'G2.5';
+  if (lower.includes('gemini-flash')) return 'Flash';
+  if (lower.includes('gemini-pro')) return 'GPro';
+  if (lower.includes('gemini_weekly') || lower === 'gw') return 'GW';
+  if (lower.includes('claude-sonnet-4-6') || lower.includes('sonnet-4.6')) return 'CS4.6';
+  if (lower.includes('claude-3-7-sonnet') || lower.includes('sonnet-3.7')) return 'CS3.7';
+  if (lower.includes('claude-3-5-sonnet') || lower.includes('sonnet-3.5')) return 'CS3.5';
+  if (lower.includes('claude_gpt_weekly') || lower === 'cw') return 'CW';
+  if (lower.includes('claude') || lower.includes('sonnet')) return 'Claude';
+  if (lower.includes('gpt-4.5')) return 'GPT4.5';
+  if (lower.includes('gpt-4o')) return 'GPT4o';
+  if (lower.includes('gpt-4')) return 'GPT4';
+  if (lower.includes('deepseek-r1')) return 'DSR1';
+  if (lower.includes('deepseek-v3')) return 'DSV3';
+  if (lower.includes('deepseek')) return 'DeepSeek';
+  if (lower.includes('session')) return 'S';
+  if (lower.includes('weekly')) return 'W';
+  return name.length > 7 ? name.slice(0, 6) + '…' : name;
 }
 
 export function formatQuotaForStatus(
