@@ -636,40 +636,41 @@ export function openConsoleLogStream(
           return;
         }
 
-        if (res.statusCode === 200) {
-          onEvent({ type: 'init', logs: [] });
-        }
-
         let buffer = '';
         res.on('data', (chunk: Buffer) => {
           try {
             buffer += chunk.toString('utf-8');
-            const lines = buffer.split(/\r?\n/);
-            buffer = lines.pop() ?? '';
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (trimmed.startsWith('data:')) {
-                const jsonStr = trimmed.slice(5).trim();
-                if (!jsonStr) {
-                  continue;
-                }
-                try {
-                  const parsed = JSON.parse(jsonStr) as ConsoleStreamMessage;
-                  if (
-                    parsed &&
-                    typeof parsed === 'object' &&
-                    'type' in parsed &&
-                    ['init', 'line', 'lines', 'clear'].includes(parsed.type)
-                  ) {
-                    onEvent(parsed);
+            let boundaryIndex: number;
+            while ((boundaryIndex = buffer.indexOf('\n\n')) !== -1) {
+              const eventBlock = buffer.slice(0, boundaryIndex);
+              buffer = buffer.slice(boundaryIndex + 2);
+
+              const lines = eventBlock.split(/\r?\n/);
+              for (const rawLine of lines) {
+                const line = rawLine.trim();
+                if (line.startsWith('data:')) {
+                  const jsonStr = line.slice(5).trim();
+                  if (!jsonStr) {
+                    continue;
                   }
-                } catch {
-                  // Ignore parse errors for partial chunks
+                  try {
+                    const parsed = JSON.parse(jsonStr) as ConsoleStreamMessage;
+                    if (
+                      parsed &&
+                      typeof parsed === 'object' &&
+                      'type' in parsed &&
+                      ['init', 'line', 'lines', 'clear'].includes(parsed.type)
+                    ) {
+                      onEvent(parsed);
+                    }
+                  } catch (parseErr) {
+                    // Ignore parse errors for malformed individual lines
+                  }
                 }
               }
             }
-          } catch {
-            // Prevent crash on malformed chunks or encoding issues
+          } catch (chunkErr) {
+            console.error('[SSE] Chunk processing error:', chunkErr);
           }
         });
 

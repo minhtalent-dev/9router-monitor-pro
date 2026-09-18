@@ -1172,6 +1172,7 @@ export function getWebviewContent(
     <div class="console-toolbar">
       <button id="btnPause" class="btn btn-sm">⏸ Pause</button>
       <button id="btnClearLogs" class="btn btn-sm btn-danger">🗑️ Clear</button>
+      <button id="btnReconnectStream" class="btn btn-sm" title="Force reconnect to 9Router Live Console stream">⟳ Reconnect</button>
       <label class="console-label">
         <input type="checkbox" id="chkAutoScroll" checked /> Auto-scroll
       </label>
@@ -1208,6 +1209,7 @@ export function getWebviewContent(
     const terminalContainer = document.getElementById('terminalContainer');
     const btnPause = document.getElementById('btnPause');
     const btnClearLogs = document.getElementById('btnClearLogs');
+    const btnReconnectStream = document.getElementById('btnReconnectStream');
     const chkAutoScroll = document.getElementById('chkAutoScroll');
     const txtLogFilter = document.getElementById('txtLogFilter');
     const logCountBadge = document.getElementById('logCountBadge');
@@ -1230,7 +1232,7 @@ export function getWebviewContent(
         vscode.postMessage({ command: 'stopConsoleStream' });
       }
 
-      if (activeTab === 'console') {
+      if (activeTab === 'console' && prevTab !== 'console') {
         const streamBadge = document.getElementById('streamStatusBadge');
         if (streamBadge) {
           streamBadge.textContent = '● Connecting...';
@@ -1280,16 +1282,17 @@ export function getWebviewContent(
     }
 
     function formatLogLine(text) {
-      const escaped = escapeHtml(text);
-      if (text.includes('DONE ')) {
+      const raw = text == null ? '' : String(text);
+      const escaped = escapeHtml(raw);
+      if (raw.includes('DONE ')) {
         return '<span class="log-done">' + escaped + '</span>';
-      } else if (text.includes('POST ')) {
+      } else if (raw.includes('POST ')) {
         return '<span class="log-post">' + escaped + '</span>';
-      } else if (text.includes('[TOKEN_REFRESH]')) {
+      } else if (raw.includes('[TOKEN_REFRESH]')) {
         return '<span class="log-refresh">' + escaped + '</span>';
-      } else if (text.includes('[WARN]') || text.includes('[HEADROOM]')) {
+      } else if (raw.includes('[WARN]') || raw.includes('[HEADROOM]')) {
         return '<span class="log-warn">' + escaped + '</span>';
-      } else if (text.includes('[ERROR]') || text.includes('ERR') || text.includes('[STREAM ERROR]')) {
+      } else if (raw.includes('[ERROR]') || raw.includes('ERR') || raw.includes('[STREAM ERROR]')) {
         return '<span class="log-error">' + escaped + '</span>';
       }
       return '<span class="log-default">' + escaped + '</span>';
@@ -1358,6 +1361,17 @@ export function getWebviewContent(
         allLogLines = [];
         renderLogs();
         vscode.postMessage({ command: 'clearConsoleLogs' });
+      });
+    }
+
+    if (btnReconnectStream) {
+      btnReconnectStream.addEventListener('click', () => {
+        const streamBadge = document.getElementById('streamStatusBadge');
+        if (streamBadge) {
+          streamBadge.textContent = '● Reconnecting...';
+          streamBadge.style.background = '#d29922';
+        }
+        vscode.postMessage({ command: 'startConsoleStream' });
       });
     }
 

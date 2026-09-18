@@ -34,6 +34,7 @@ import { renderStatusBar } from './statusBar';
 import { setConnection } from './quickMenu';
 
 let activeLogStreamAbort: (() => void) | undefined;
+let isStartingConsoleStream = false;
 
 export function syncDashboardWebview(
   context: vscode.ExtensionContext,
@@ -290,29 +291,37 @@ export async function showDetails(
           `[9Router Pro] Auto-refresh interval set to ${msg.intervalSeconds}s.`
         );
       } else if (msg.command === 'startConsoleStream') {
-        if (activeLogStreamAbort) {
-          activeLogStreamAbort();
-          activeLogStreamAbort = undefined;
+        if (isStartingConsoleStream) {
+          return;
         }
-        const auth = await getAuthContext(context, cfg);
-        if (auth) {
-          activeLogStreamAbort = openConsoleLogStream(
-            cfg,
-            auth,
-            (event) => {
-              detailsPanel?.webview.postMessage({
-                command: 'consoleLogEvent',
-                event
-              });
-            },
-            (err) => {
-              console.error('Console stream error:', err);
-              detailsPanel?.webview.postMessage({
-                command: 'consoleLogError',
-                error: err.message
-              });
-            }
-          );
+        isStartingConsoleStream = true;
+        try {
+          if (activeLogStreamAbort) {
+            activeLogStreamAbort();
+            activeLogStreamAbort = undefined;
+          }
+          const auth = await getAuthContext(context, cfg);
+          if (auth && detailsPanel) {
+            activeLogStreamAbort = openConsoleLogStream(
+              cfg,
+              auth,
+              (event) => {
+                detailsPanel?.webview.postMessage({
+                  command: 'consoleLogEvent',
+                  event
+                });
+              },
+              (err) => {
+                console.error('Console stream error:', err);
+                detailsPanel?.webview.postMessage({
+                  command: 'consoleLogError',
+                  error: err.message
+                });
+              }
+            );
+          }
+        } finally {
+          isStartingConsoleStream = false;
         }
       } else if (msg.command === 'stopConsoleStream') {
         if (activeLogStreamAbort) {
