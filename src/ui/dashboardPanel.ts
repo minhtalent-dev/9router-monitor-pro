@@ -59,11 +59,18 @@ export function syncDashboardWebview(
     intervalSeconds: 60,
     showLogStatusBar: true
   };
+  const pinnedAccountIds = getPinnedAccountIds(context);
+  const pinnedModels = getPinnedModels(context);
+  const hiddenModels = getHiddenModels(context);
+
   try {
     const postPromise = panel.webview.postMessage({
       command: 'syncData',
       data: dashboard,
-      config: effectiveConfig
+      config: effectiveConfig,
+      pinnedAccountIds,
+      pinnedModels,
+      hiddenModels
     });
     if (postPromise && typeof postPromise.then === 'function') {
       postPromise.then((delivered) => {
@@ -230,6 +237,7 @@ export async function showDetails(
           vscode.window.showErrorMessage(
             `[9Router Pro] Failed to update account status: ${errMsg}`
           );
+          syncDashboardWebview(context, cfg);
         }
       } else if (
         (msg.command === 'togglePinModel' || msg.command === 'pinModel') &&

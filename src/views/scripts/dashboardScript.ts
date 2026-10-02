@@ -41,6 +41,136 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
     const logCountBadge = document.getElementById('logCountBadge');
     const btnRefreshAnalytics = document.getElementById('btnRefreshAnalytics');
 
+    function updateAccountPinDOM(accountId, isPinned) {
+      const sec = document.querySelector('.provider-section[data-connection-id="' + accountId + '"]');
+      if (!sec) return;
+      if (isPinned) {
+        sec.classList.add('pinned-account');
+      } else {
+        sec.classList.remove('pinned-account');
+      }
+      const btn = sec.querySelector('.pinned-account-btn, .pin-account-btn');
+      if (btn) {
+        if (isPinned) {
+          btn.classList.add('active');
+          btn.textContent = '★ Pinned';
+          btn.title = 'Unpin account from Status Bar';
+        } else {
+          btn.classList.remove('active');
+          btn.textContent = '☆ Pin Account';
+          btn.title = 'Pin account to Status Bar';
+        }
+      }
+      const star = sec.querySelector('.provider-title .star');
+      if (star) {
+        if (isPinned) {
+          star.textContent = '⭐';
+        } else {
+          const isPrimary = sec.classList.contains('primary') || sec.dataset.priority === '1';
+          star.textContent = isPrimary ? '📌' : '👤';
+        }
+      }
+    }
+
+    function updateAccountActiveDOM(connId, isActive) {
+      const btn = document.querySelector('.toggle-btn[data-connection-id="' + connId + '"]');
+      if (!btn) return;
+      btn.dataset.active = String(isActive);
+      if (isActive) {
+        btn.classList.remove('inactive');
+        btn.classList.add('active');
+        btn.textContent = '✓ Active';
+        btn.title = 'Click to disable this account';
+      } else {
+        btn.classList.remove('active');
+        btn.classList.add('inactive');
+        btn.textContent = '✗ Inactive';
+        btn.title = 'Click to enable this account';
+      }
+    }
+
+    function updateModelPinDOM(modelKey, isPinned) {
+      if (!modelKey) return;
+      const lower = modelKey.toLowerCase();
+      const cards = document.querySelectorAll('.model-card[data-model="' + lower + '"]');
+      cards.forEach(card => {
+        card.dataset.pinned = isPinned ? 'true' : 'false';
+        if (isPinned) {
+          card.classList.add('is-pinned');
+        } else {
+          card.classList.remove('is-pinned');
+        }
+        const starBtn = card.querySelector('.star-btn, .pin-btn');
+        if (starBtn) {
+          if (isPinned) {
+            starBtn.classList.add('active');
+            starBtn.title = 'Unpin from Status Bar';
+          } else {
+            starBtn.classList.remove('active');
+            starBtn.title = 'Pin to Status Bar';
+          }
+        }
+        const actions = card.querySelector('.card-actions');
+        if (actions) {
+          let badge = actions.querySelector('.badge-pinned');
+          if (isPinned) {
+            if (!badge) {
+              badge = document.createElement('span');
+              badge.className = 'badge-pinned';
+              badge.textContent = '⭐ Pinned';
+              actions.insertBefore(badge, starBtn || actions.firstChild);
+            }
+          } else {
+            if (badge) {
+              badge.remove();
+            }
+          }
+        }
+      });
+    }
+
+    function updateModelHideDOM(modelKey, isHidden) {
+      if (!modelKey) return;
+      const lower = modelKey.toLowerCase();
+      const cards = document.querySelectorAll('.model-card[data-model="' + lower + '"]');
+      cards.forEach(card => {
+        card.dataset.hidden = isHidden ? 'true' : 'false';
+        if (isHidden) {
+          card.classList.add('is-hidden');
+        } else {
+          card.classList.remove('is-hidden');
+        }
+        const hideBtn = card.querySelector('.hide-btn');
+        if (hideBtn) {
+          if (isHidden) {
+            hideBtn.classList.add('active');
+            hideBtn.textContent = '🙈';
+            hideBtn.title = 'Unhide model';
+          } else {
+            hideBtn.classList.remove('active');
+            hideBtn.textContent = '👁️';
+            hideBtn.title = 'Hide model';
+          }
+        }
+        const actions = card.querySelector('.card-actions');
+        if (actions) {
+          let badge = actions.querySelector('.badge-hidden');
+          if (isHidden) {
+            if (!badge) {
+              badge = document.createElement('span');
+              badge.className = 'badge-hidden';
+              badge.textContent = 'Hidden';
+              actions.insertBefore(badge, actions.querySelector('.star-btn') || actions.firstChild);
+            }
+          } else {
+            if (badge) {
+              badge.remove();
+            }
+          }
+        }
+      });
+    }
+
     function getTodayIso() {
       const d = new Date();
       const year = d.getFullYear();
@@ -630,7 +760,12 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
         if (Array.isArray(data.items)) {
           data.items.forEach(item => {
             if (!item || !item.connection) return;
-            const sec = document.querySelector('.provider-section[data-connection-id="' + item.connection.id + '"]');
+            const connId = item.connection.id;
+            updateAccountActiveDOM(connId, item.connection.isActive);
+            if (Array.isArray(message.pinnedAccountIds)) {
+              updateAccountPinDOM(connId, message.pinnedAccountIds.includes(connId));
+            }
+            const sec = document.querySelector('.provider-section[data-connection-id="' + connId + '"]');
             if (!sec || !item.usage || !item.usage.quotas) return;
             const quotas = item.usage.quotas;
             Object.entries(quotas).forEach(([name, q]) => {
@@ -674,6 +809,27 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
               }
             });
           });
+
+          if (Array.isArray(message.pinnedModels)) {
+            const pinnedSet = new Set(message.pinnedModels.map(m => m.toLowerCase()));
+            document.querySelectorAll('.model-card').forEach(card => {
+              const mName = card.dataset.model;
+              if (mName) {
+                updateModelPinDOM(mName, pinnedSet.has(mName));
+              }
+            });
+          }
+
+          if (Array.isArray(message.hiddenModels)) {
+            const hiddenSet = new Set(message.hiddenModels.map(m => m.toLowerCase()));
+            document.querySelectorAll('.model-card').forEach(card => {
+              const mName = card.dataset.model;
+              if (mName) {
+                updateModelHideDOM(mName, hiddenSet.has(mName));
+              }
+            });
+          }
+
           applyFiltersAndSort();
         }
       } else if (message.command === 'analyticsData') {
@@ -745,6 +901,8 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
       if (pinAccBtn) {
         const accountId = pinAccBtn.dataset.accountId;
         if (accountId) {
+          const isCurrentlyPinned = pinAccBtn.classList.contains('active');
+          updateAccountPinDOM(accountId, !isCurrentlyPinned);
           vscode.postMessage({ command: 'togglePinAccount', accountId: accountId });
         }
         return;
@@ -754,6 +912,7 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
         const connId = toggleBtn.dataset.connectionId;
         const currentActive = toggleBtn.dataset.active === 'true';
         if (connId) {
+          updateAccountActiveDOM(connId, !currentActive);
           vscode.postMessage({
             command: 'toggleProviderActive',
             connectionId: connId,
@@ -766,6 +925,8 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
       if (starBtn) {
         const model = starBtn.dataset.model;
         if (model) {
+          const isCurrentlyPinned = starBtn.classList.contains('active');
+          updateModelPinDOM(model, !isCurrentlyPinned);
           vscode.postMessage({ command: 'togglePinModel', modelName: model });
         }
         return;
@@ -774,6 +935,9 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
       if (hideBtn) {
         const model = hideBtn.dataset.model;
         if (model) {
+          const isCurrentlyHidden = hideBtn.classList.contains('active');
+          updateModelHideDOM(model, !isCurrentlyHidden);
+          applyFiltersAndSort();
           vscode.postMessage({ command: 'toggleHide', model: model });
         }
         return;
