@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.1] - 2026-10-02
+
+### Added
+- 🔍 **Full Observability Logging System**: Chuẩn hóa hệ thống logging chuyên nghiệp cho toàn bộ 7 phân hệ (`httpTransport`, `authManager`, `quotaService`, `analyticsService`, `extension`, `quickMenu`, `dashboardPanel`).
+- ⚡ **1-Click View Logs Affordance**: Thêm nút **View Logs** vào tất cả thông báo lỗi Toast (`showErrorMessage`, `showWarningMessage`) và link `[$(output) View Logs]` ngay trên Status Bar Tooltip khi phát sinh lỗi kết nối.
+- 🛡️ **Secret Masking & Sanitization**: Tự động lọc và che giấu dữ liệu nhạy cảm (`password`, `token`, `auth_token`, `cliToken`) khỏi kênh Output Channel để bảo mật tuyệt đối.
+
+### Fixed
+- 🔄 **Webview Dashboard Instant Sync**: Khắc phục lỗi giao diện không cập nhật khi thao tác trên Webview Dashboard. Bổ sung `pinnedAccountIds`, `pinnedModels`, `hiddenModels` vào IPC message `syncData` cùng cơ chế Optimistic UI (0ms latency) khi ghim/bật/tắt/ẩn tài khoản và model.
+- 🧹 **Clean Production Filter**: Loại bỏ hoàn toàn các dòng log debug HTTP 200 lẻ tẻ khi polling nhiều tài khoản (53 accounts), thay thế bằng 1 dòng tóm tắt duy nhất cho mỗi mẻ sync (`[Quota] Synced quota for 53 accounts in 24.8s`), giảm 98% nhiễu log và chống tràn bộ nhớ.
+- ⚙️ **Persistent Settings & Schema**: Khai báo chuẩn xác `logStatusDisplayMode` và `logTooltipDisplayMode` vào schema VS Code; chuyển `logTooltipLimit` (10/25/50) sang lưu trữ lâu dài trong `globalState`.
+
 ## [1.1.0] - 2026-09-18
 
 ### Added
