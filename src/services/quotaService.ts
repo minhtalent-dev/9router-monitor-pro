@@ -126,7 +126,7 @@ export async function fetchDashboard(
   auth: AuthContext
 ): Promise<DashboardData> {
   const providersUrl = buildUrl(cfg.baseUrl, cfg.providersPath);
-  logInfo('Quota', `Fetching providers list from ${providersUrl.toString()}...`);
+  logDebug('Quota', `Fetching providers list from ${providersUrl.toString()}...`);
   const providersJson = await fetchJson(providersUrl, auth);
   const connections = parseProviders(providersJson).sort(
     (a, b) => a.priority - b.priority
@@ -175,7 +175,8 @@ export async function fetchDashboard(
     }
   );
 
-  logInfo('Quota', `Synced quota for ${items.length} accounts in ${Date.now() - startTime}ms.`);
+  const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
+  logInfo('Quota', `Synced quota for ${items.length} accounts in ${durationSec}s.`);
 
   return {
     items,

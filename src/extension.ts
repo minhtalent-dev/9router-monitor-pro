@@ -359,7 +359,6 @@ async function executeRefresh(context: vscode.ExtensionContext): Promise<void> {
     const dashboard = await fetchDashboard(config, auth);
     setLastDashboard(dashboard);
     setLastError(undefined);
-    logDebug('Extension', `Quota refresh completed successfully for ${config.baseUrl}`);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logError('Extension', `Failed to fetch dashboard data from ${config.baseUrl}: ${msg}`, err);

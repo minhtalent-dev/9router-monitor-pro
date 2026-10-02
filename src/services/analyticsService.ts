@@ -18,7 +18,6 @@ export async function fetchUsageStats(
 ): Promise<UsageStats | undefined> {
   try {
     const target = buildUrl(config.baseUrl, '/api/usage/stats');
-    logDebug('Analytics', `Fetching usage stats from ${target.toString()}`);
     const res = await requestWithAuth<UsageStats | { data: UsageStats }>(
       target,
       auth,
@@ -50,7 +49,6 @@ export async function fetchRequestLogs(
       config.baseUrl,
       `/api/usage/request-logs?page=${encodeURIComponent(page)}&limit=${encodeURIComponent(limit)}`
     );
-    logDebug('Analytics', `Fetching request logs (page=${page}, limit=${limit})`);
     const res = await requestWithAuth<unknown>(target, auth, { method: 'GET' });
     if (res.status < 200 || res.status >= 300 || !res.data) {
       logWarn('Analytics', `Request logs returned HTTP ${res.status}`);
@@ -68,8 +66,6 @@ export async function fetchRequestLogs(
         rawList = record.data;
       }
     }
-
-    logDebug('Analytics', `Loaded ${rawList.length} request logs from server.`);
 
     return rawList.map((item): RequestLogItem => {
       if (typeof item === 'string') {

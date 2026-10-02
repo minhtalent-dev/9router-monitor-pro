@@ -29,7 +29,6 @@ export function requestWithAuth<T = unknown>(
     const client = target.protocol === 'http:' ? http : https;
     const method = options.method ?? 'GET';
     const startTime = Date.now();
-    logDebug('HTTP', `>> ${method} ${target.toString()}`);
 
     const headers: Record<string, string> = {
       Accept: 'application/json',
@@ -92,8 +91,6 @@ export function requestWithAuth<T = unknown>(
 
           if (status >= 400) {
             logWarn('HTTP', `<< ${method} ${target.pathname} -> HTTP ${status} (${duration}ms): ${body.slice(0, 160)}`);
-          } else {
-            logDebug('HTTP', `<< ${method} ${target.pathname} -> HTTP ${status} (${duration}ms)`);
           }
 
           let data: T | undefined;
@@ -133,7 +130,6 @@ export function fetchJson(
   return new Promise<unknown>((resolve, reject) => {
     const client = target.protocol === 'http:' ? http : https;
     const startTime = Date.now();
-    logDebug('HTTP', `>> GET ${target.toString()}`);
 
     const headers: Record<string, string> = {
       Accept: 'application/json',
@@ -188,8 +184,6 @@ export function fetchJson(
             reject(new Error(`HTTP ${status}: ${body.slice(0, 200)}`));
             return;
           }
-
-          logDebug('HTTP', `<< GET ${target.pathname} -> HTTP ${status} (${duration}ms)`);
 
           try {
             resolve(JSON.parse(body) as unknown);
