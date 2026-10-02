@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { AuthContext, ExtensionConfig } from '../types';
+import { logDebug, logInfo, logWarn, logError } from '../utils/logger';
 
 export const SECRET_PASSWORD = 'aiTokenUsage.dashboardPassword';
 export const SECRET_SESSION_TOKEN = 'aiTokenUsage.sessionToken';
@@ -61,6 +62,7 @@ export function getAllLocalCliTokens(): string[] {
           .digest('hex')
           .substring(0, 16);
         candidates.push({ token, mtime: stat.mtimeMs });
+        logDebug('Auth', `Found candidate CLI secret at ${secretPath}`);
       }
     } catch {
       // Ignore file read errors and continue checking other directories
@@ -73,6 +75,9 @@ export function getAllLocalCliTokens(): string[] {
     if (!uniqueTokens.includes(item.token)) {
       uniqueTokens.push(item.token);
     }
+  }
+  if (uniqueTokens.length > 0) {
+    logInfo('Auth', `Loaded ${uniqueTokens.length} local CLI token(s) (sorted by mtime).`);
   }
   return uniqueTokens;
 }
@@ -88,12 +93,15 @@ export function loginDashboard(baseUrl: string, password: string): Promise<strin
     try {
       target = buildUrl(baseUrl, '/api/auth/login');
     } catch (err) {
+      logError('Auth', `Invalid login URL: ${baseUrl}`, err);
       reject(err);
       return;
     }
 
     const client = target.protocol === 'http:' ? http : https;
     const postData = JSON.stringify({ password });
+    const startTime = Date.now();
+    logInfo('Auth', `Attempting Dashboard login at ${target.toString()}...`);
 
     const req = client.request(
       target,
@@ -112,6 +120,7 @@ export function loginDashboard(baseUrl: string, password: string): Promise<strin
         res.on('end', () => {
           const body = Buffer.concat(chunks).toString('utf-8');
           const status = res.statusCode ?? 0;
+          const duration = Date.now() - startTime;
 
           if (status < 200 || status >= 300) {
             let detail = '';
@@ -122,6 +131,7 @@ export function loginDashboard(baseUrl: string, password: string): Promise<strin
               detail = body.slice(0, 200);
             }
             const msg = detail ? `HTTP ${status}: ${detail}` : `HTTP ${status}`;
+            logError('Auth', `Dashboard login failed (${msg}) in ${duration}ms`);
             if (status === 401) {
               reject(new Error(`Invalid Dashboard password (${msg})`));
             } else {
@@ -162,8 +172,10 @@ export function loginDashboard(baseUrl: string, password: string): Promise<strin
           }
 
           if (token) {
+            logInfo('Auth', `Dashboard login succeeded in ${duration}ms. Session token acquired.`);
             resolve(token);
           } else {
+            logError('Auth', `Login response did not contain auth_token in ${duration}ms`);
             reject(new Error('auth_token not found in login response.'));
           }
         });
@@ -171,9 +183,13 @@ export function loginDashboard(baseUrl: string, password: string): Promise<strin
     );
 
     req.setTimeout(15000, () => {
+      logError('Auth', `Login request timed out (15s) for ${target.toString()}`);
       req.destroy(new Error('Login request timed out (15s).'));
     });
-    req.on('error', (err) => reject(err));
+    req.on('error', (err) => {
+      logError('Auth', `Network error during login at ${target.toString()}`, err);
+      reject(err);
+    });
     req.write(postData);
     req.end();
   });
@@ -197,6 +213,7 @@ export async function getAuthContext(
   const localCliToken = getLocalCliToken() ?? undefined;
 
   if (!password && !sessionToken && !legacyApiKey && !localCliToken) {
+    logDebug('Auth', `No credentials found for ${targetBaseUrl}`);
     return undefined;
   }
 
@@ -204,10 +221,12 @@ export async function getAuthContext(
     try {
       sessionToken = await loginDashboard(targetBaseUrl, password);
       await context.secrets.store(SECRET_SESSION_TOKEN, sessionToken);
-    } catch {
-      // Preliminary login error ignored
+    } catch (loginErr) {
+      logWarn('Auth', `Initial session token generation failed: ${loginErr instanceof Error ? loginErr.message : String(loginErr)}`);
     }
   }
+
+  logDebug('Auth', `AuthContext resolved for ${targetBaseUrl} (hasSession=${Boolean(sessionToken)}, hasCli=${Boolean(localCliToken)})`);
 
   return {
     authToken: sessionToken,

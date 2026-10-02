@@ -15,6 +15,7 @@ import {
   toOptionalString
 } from '../utils/helpers';
 import { buildUrl, fetchJson, requestWithAuth } from './httpTransport';
+import { logDebug, logInfo, logWarn, logError } from '../utils/logger';
 
 export const usageCache = new Map<string, UsageData>();
 
@@ -125,11 +126,14 @@ export async function fetchDashboard(
   auth: AuthContext
 ): Promise<DashboardData> {
   const providersUrl = buildUrl(cfg.baseUrl, cfg.providersPath);
+  logInfo('Quota', `Fetching providers list from ${providersUrl.toString()}...`);
   const providersJson = await fetchJson(providersUrl, auth);
   const connections = parseProviders(providersJson).sort(
     (a, b) => a.priority - b.priority
   );
+  logDebug('Quota', `Found ${connections.length} active provider connections.`);
 
+  const startTime = Date.now();
   const items = await mapConcurrent(
     connections,
     3,
@@ -147,6 +151,7 @@ export async function fetchDashboard(
         } catch (err) {
           lastErr = err instanceof Error ? err : new Error(String(err));
           if (attempt === 1) {
+            logWarn('Quota', `Attempt 1 failed for ${connection.name || connection.id}: ${lastErr.message}. Retrying...`);
             await new Promise((r) => setTimeout(r, 600));
           }
         }
@@ -154,6 +159,7 @@ export async function fetchDashboard(
 
       const cached = usageCache.get(connection.id);
       if (cached) {
+        logWarn('Quota', `Provider ${connection.id} failed both attempts. Using cached quota.`);
         return {
           connection,
           usage: cached,
@@ -161,12 +167,15 @@ export async function fetchDashboard(
         };
       }
 
+      logError('Quota', `Provider ${connection.id} failed quota fetch: ${lastErr?.message}`);
       return {
         connection,
         error: lastErr?.message ?? 'Request timed out.'
       };
     }
   );
+
+  logInfo('Quota', `Synced quota for ${items.length} accounts in ${Date.now() - startTime}ms.`);
 
   return {
     items,
@@ -185,6 +194,7 @@ export async function updateProviderActive(
     auth.baseUrl,
     `/api/providers/${encodeURIComponent(String(connectionId))}`
   );
+  logInfo('Quota', `Updating provider ${connectionId} active status to ${isActive}...`);
   const postData = JSON.stringify({ isActive });
   const res = await requestWithAuth(
     target,
@@ -196,7 +206,9 @@ export async function updateProviderActive(
     allowRetry
   );
   if (res.status < 200 || res.status >= 300) {
+    logError('Quota', `Failed to update provider ${connectionId} active status: HTTP ${res.status}`);
     throw new Error(`HTTP ${res.status}`);
   }
+  logInfo('Quota', `Provider ${connectionId} active status successfully updated to ${isActive}.`);
   return true;
 }

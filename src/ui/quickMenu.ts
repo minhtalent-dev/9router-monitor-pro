@@ -28,6 +28,7 @@ import {
 } from '../utils/helpers';
 import { renderStatusBar } from './statusBar';
 import { showDetails } from './dashboardPanel';
+import { showOutputChannel } from '../utils/logger';
 
 interface IntervalPickItem extends vscode.QuickPickItem {
   seconds?: number;
@@ -90,9 +91,13 @@ export async function setConnection(
       );
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      vscode.window.showWarningMessage(
-        `[9Router Pro] Saved Base URL, but authentication failed: ${errMsg} Please check password or Tunnel status.`
+      const pick = await vscode.window.showWarningMessage(
+        `[9Router Pro] Saved Base URL, but authentication failed: ${errMsg} Please check password or Tunnel status.`,
+        'View Logs'
       );
+      if (pick === 'View Logs') {
+        showOutputChannel();
+      }
     }
   } else {
     await context.secrets.delete(SECRET_PASSWORD);
@@ -832,9 +837,9 @@ export async function openQuickMenu(
       action: 'toggleLogStatusBar'
     },
     {
-      label: '$(output) View Live Debug Output Logs',
+      label: '$(output) View Extension Debug Logs (Output)',
       description: 'Open 9Router Monitor Pro Debug Output Channel',
-      detail: 'View detailed diagnostic logs and HTTP/SSE socket traces',
+      detail: 'View detailed diagnostic traces, HTTP requests, and socket status',
       action: 'showDebugLogs'
     },
     {

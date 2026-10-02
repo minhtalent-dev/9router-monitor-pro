@@ -40,6 +40,7 @@ export function createDashboardTooltip(
       'aiTokenUsage.showDetails',
       'aiTokenUsage.openConsoleLog',
       'aiTokenUsage.openUsageAnalytics',
+      'aiTokenUsage.showDebugLogs',
       'aiTokenUsage.setTooltipMode',
       'aiTokenUsage.toggleTooltipMode',
       'aiTokenUsage.setDisplayMode',
@@ -77,7 +78,9 @@ export function createDashboardTooltip(
   md.appendMarkdown('### 📊 9Router Monitor Pro · Multi-Account Quota Monitor\n\n');
   const lastError = getLastError();
   if (lastError) {
-    md.appendMarkdown(`> $(warning) Error: ${lastError}\n\n`);
+    md.appendMarkdown(
+      `> $(warning) Error: ${lastError} &nbsp; [$(output) View Logs](command:aiTokenUsage.showDebugLogs)\n\n`
+    );
   }
 
   if (targets.length > 1) {
@@ -289,6 +292,7 @@ export function createLogStatusBarTooltip(
       'aiTokenUsage.showDetails',
       'aiTokenUsage.openConsoleLog',
       'aiTokenUsage.openUsageAnalytics',
+      'aiTokenUsage.showDebugLogs',
       'aiTokenUsage.setLogTooltipLimit',
       'aiTokenUsage.toggleLogTooltipMode',
       'aiTokenUsage.setLogTooltipMode',

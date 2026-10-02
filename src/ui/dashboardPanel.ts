@@ -35,7 +35,7 @@ import { displayName, quotaTitle } from '../utils/helpers';
 import { getWebviewContent } from '../views/dashboardTemplate';
 import { renderStatusBar } from './statusBar';
 import { setConnection } from './quickMenu';
-import { logDebug, logError } from '../utils/logger';
+import { logDebug, logError, showOutputChannel } from '../utils/logger';
 
 let activeLogStreamAbort: (() => void) | undefined;
 let isStartingConsoleStream = false;
@@ -116,10 +116,13 @@ export async function showDetails(
   if (lastErr && !dashboard) {
     const pick = await vscode.window.showErrorMessage(
       `[9Router Pro] Connection Error: ${lastErr}`,
+      'View Logs',
       'Retry',
       'Change Connection'
     );
-    if (pick === 'Retry') {
+    if (pick === 'View Logs') {
+      showOutputChannel();
+    } else if (pick === 'Retry') {
       await onRefresh(true);
     } else if (pick === 'Change Connection') {
       await setConnection(context, () => Promise.resolve(onRefresh(true)));

@@ -38,14 +38,28 @@ import {
   toggleLogTooltipMode
 } from './ui/quickMenu';
 import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
-import { getOutputChannel } from './utils/logger';
+import {
+  initLogger,
+  showOutputChannel,
+  logInfo,
+  logDebug,
+  logWarn,
+  logError
+} from './utils/logger';
 
 let refreshTimer: NodeJS.Timeout | undefined;
 let logRefreshTimer: NodeJS.Timeout | undefined;
 
 export function activate(context: vscode.ExtensionContext): void {
   setCurrentContext(context);
+  initLogger(context);
   initStatusBar(context);
+
+  const initialCfg = getConfig();
+  logInfo(
+    'Extension',
+    `9Router Monitor Pro activated (BaseURL: ${initialCfg.baseUrl}, Interval: ${initialCfg.intervalSeconds}s, Log Interval: ${initialCfg.logStatusBarRefreshIntervalSeconds}s)`
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand('aiTokenUsage.openQuickMenu', () =>
@@ -130,7 +144,7 @@ export function activate(context: vscode.ExtensionContext): void {
       );
     }),
     vscode.commands.registerCommand('aiTokenUsage.showDebugLogs', () => {
-      getOutputChannel().show();
+      showOutputChannel();
     })
   );
 
@@ -277,9 +291,16 @@ export async function refresh(
     );
     const lastErr = getLastError();
     if (lastErr) {
-      vscode.window.showErrorMessage(
-        `[9Router Pro] Refresh failed: ${lastErr}`
+      const pick = await vscode.window.showErrorMessage(
+        `[9Router Pro] Refresh failed: ${lastErr}`,
+        'View Logs',
+        'Retry'
       );
+      if (pick === 'View Logs') {
+        showOutputChannel();
+      } else if (pick === 'Retry') {
+        void refresh(context, true);
+      }
     } else {
       const dashboard = getLastDashboard();
       const count = dashboard?.items.length ?? 0;
@@ -325,7 +346,9 @@ async function executeRefresh(context: vscode.ExtensionContext): Promise<void> {
       auth.authToken = await loginDashboard(auth.baseUrl, password);
       await context.secrets.store(SECRET_SESSION_TOKEN, auth.authToken);
     } catch (err) {
-      setLastError(err instanceof Error ? err.message : String(err));
+      const msg = err instanceof Error ? err.message : String(err);
+      logError('Extension', `Re-login failed during refresh: ${msg}`, err);
+      setLastError(msg);
       setLastDashboard(undefined);
       renderStatusBar(config);
       return;
@@ -336,8 +359,11 @@ async function executeRefresh(context: vscode.ExtensionContext): Promise<void> {
     const dashboard = await fetchDashboard(config, auth);
     setLastDashboard(dashboard);
     setLastError(undefined);
+    logDebug('Extension', `Quota refresh completed successfully for ${config.baseUrl}`);
   } catch (err) {
-    setLastError(err instanceof Error ? err.message : String(err));
+    const msg = err instanceof Error ? err.message : String(err);
+    logError('Extension', `Failed to fetch dashboard data from ${config.baseUrl}: ${msg}`, err);
+    setLastError(msg);
   }
 
   renderStatusBar(config);
