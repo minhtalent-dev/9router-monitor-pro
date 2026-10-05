@@ -9,6 +9,7 @@ import {
 import {
   getCurrentContext,
   getLastError,
+  getLastLogError,
   getPinnedAccountIds,
   getPinnedModels
 } from '../services/stateManager';
@@ -78,8 +79,9 @@ export function createDashboardTooltip(
   md.appendMarkdown('### 📊 9Router Monitor Pro · Multi-Account Quota Monitor\n\n');
   const lastError = getLastError();
   if (lastError) {
+    const safeMsg = lastError.replace(/[\\`*_{}[\]()#+\-.!|<>~&]/g, '\\$&');
     md.appendMarkdown(
-      `> $(warning) Error: ${lastError} &nbsp; [$(output) View Logs](command:aiTokenUsage.showDebugLogs)\n\n`
+      `> $(warning) Error: ${safeMsg} &nbsp; [$(output) View Logs](command:aiTokenUsage.showDebugLogs)\n\n`
     );
   }
 
@@ -303,6 +305,13 @@ export function createLogStatusBarTooltip(
   md.supportHtml = true;
 
   md.appendMarkdown('### 🖥️ 9Router Monitor Pro · Live System & Usage\n\n');
+
+  // Cảnh báo khi lần fetch log gần nhất lỗi (vẫn giữ dữ liệu cũ bên dưới)
+  const logFetchError = getLastLogError();
+  if (logFetchError) {
+    const safeMsg = logFetchError.replace(/[\\`*_{}[\]()#+\-.!|<>~&]/g, '\\$&');
+    md.appendMarkdown(`⚠️ Log fetch failed: ${safeMsg}\n\n`);
+  }
 
   if (tooltipMode !== 'logs') {
     if (stats) {

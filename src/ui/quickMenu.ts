@@ -12,12 +12,14 @@ import {
   setLogTooltipDisplayMode as setLogTooltipModeState
 } from '../services/stateManager';
 import {
+  clearCliTokenCache,
   getAuthContext,
   getLocalCliToken,
   loginDashboard,
   SECRET_PASSWORD,
   SECRET_SESSION_TOKEN
 } from '../services/authManager';
+import { getConfig } from '../extension';
 import { updateProviderActive } from '../services/apiClient';
 import { formatCompact } from '../utils/formatters';
 import {
@@ -79,6 +81,7 @@ export async function setConnection(
   // Save Base URL to configuration
   const cfg = vscode.workspace.getConfiguration('aiTokenUsage');
   await cfg.update('apiBaseUrl', cleanUrl, vscode.ConfigurationTarget.Global);
+  clearCliTokenCache();
 
   const trimmedPassword = inputPassword.trim();
   if (trimmedPassword !== '') {
@@ -755,7 +758,7 @@ async function showToggleAccountQuickPick(
     return;
   }
 
-  const auth = await getAuthContext(context);
+  const auth = await getAuthContext(context, getConfig());
   if (!auth) {
     vscode.window.showErrorMessage(
       '[9Router Pro] No authentication credentials found to connect to 9Router.'

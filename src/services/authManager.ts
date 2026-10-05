@@ -21,15 +21,75 @@ function buildUrl(baseUrl: string, pathOrUrl: string): URL {
   }
 }
 
+// Cache quét token CLI (TTL 30s) để tránh đọc đĩa và ghi log lặp lại
+const CLI_TOKEN_CACHE_TTL_MS = 30_000;
+let cliTokenCache: { tokens: string[]; expiresAt: number; signature: string } | undefined;
+let lastLoggedSignature: string | undefined;
+let lastAuthContextKey: string | undefined;
+let loginInFlight: Promise<string> | null = null;
+
+export function clearCliTokenCache(): void {
+  cliTokenCache = undefined;
+}
+
+export async function setConnection(
+  context: vscode.ExtensionContext,
+  password?: string,
+  sessionToken?: string
+): Promise<void> {
+  clearCliTokenCache();
+  if (password !== undefined) {
+    if (password) {
+      await context.secrets.store(SECRET_PASSWORD, password);
+    } else {
+      await context.secrets.delete(SECRET_PASSWORD);
+    }
+  }
+  if (sessionToken !== undefined) {
+    if (sessionToken) {
+      await context.secrets.store(SECRET_SESSION_TOKEN, sessionToken);
+    } else {
+      await context.secrets.delete(SECRET_SESSION_TOKEN);
+    }
+  }
+}
+
+export async function clearConnection(
+  context: vscode.ExtensionContext
+): Promise<void> {
+  clearCliTokenCache();
+  await context.secrets.delete(SECRET_PASSWORD);
+  await context.secrets.delete(SECRET_SESSION_TOKEN);
+}
+
 export function getAllLocalCliTokens(): string[] {
-  const candidateDirs = [
-    'C:\\Users\\Administrator\\AppData\\Roaming\\9router',
+  if (cliTokenCache && Date.now() < cliTokenCache.expiresAt) {
+    return cliTokenCache.tokens;
+  }
+
+  const rawDirs = [
     process.env.APPDATA ? path.join(process.env.APPDATA, '9router') : null,
     path.join(os.homedir(), 'AppData', 'Roaming', '9router'),
+    process.env.XDG_CONFIG_HOME
+      ? path.join(process.env.XDG_CONFIG_HOME, '9router')
+      : path.join(os.homedir(), '.config', '9router'),
+    path.join(os.homedir(), 'Library', 'Application Support', '9router'),
     path.join(os.homedir(), '.9router')
   ].filter((dir): dir is string => Boolean(dir));
 
-  const candidates: { token: string; mtime: number }[] = [];
+  // Loại trùng đường dẫn (Windows không phân biệt hoa thường), giữ nguyên casing gốc
+  const seenDirs = new Set<string>();
+  const candidateDirs = rawDirs.filter((dir) => {
+    const resolved = path.resolve(dir);
+    const key = process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+    if (seenDirs.has(key)) {
+      return false;
+    }
+    seenDirs.add(key);
+    return true;
+  });
+
+  const candidates: { token: string; mtime: number; secretPath: string }[] = [];
 
   for (const dir of candidateDirs) {
     try {
@@ -61,8 +121,7 @@ export function getAllLocalCliTokens(): string[] {
           .update(machineId + '9r-cli-auth' + cliSecret)
           .digest('hex')
           .substring(0, 16);
-        candidates.push({ token, mtime: stat.mtimeMs });
-        logDebug('Auth', `Found candidate CLI secret at ${secretPath}`);
+        candidates.push({ token, mtime: stat.mtimeMs, secretPath });
       }
     } catch {
       // Ignore file read errors and continue checking other directories
@@ -76,9 +135,20 @@ export function getAllLocalCliTokens(): string[] {
       uniqueTokens.push(item.token);
     }
   }
-  if (uniqueTokens.length > 0) {
-    logInfo('Auth', `Loaded ${uniqueTokens.length} local CLI token(s) (sorted by mtime).`);
+
+  // Chữ ký = đường dẫn + token; chỉ ghi log khi thay đổi so với lần log trước
+  const signature = candidates.map((c) => `${c.secretPath}:${c.token}`).join('|');
+  if (signature !== lastLoggedSignature) {
+    lastLoggedSignature = signature;
+    for (const c of candidates) {
+      logDebug('Auth', `Found candidate CLI secret at ${c.secretPath}`);
+    }
+    if (uniqueTokens.length > 0) {
+      logInfo('Auth', `Loaded ${uniqueTokens.length} local CLI token(s) (sorted by mtime).`);
+    }
   }
+
+  cliTokenCache = { tokens: uniqueTokens, expiresAt: Date.now() + CLI_TOKEN_CACHE_TTL_MS, signature };
   return uniqueTokens;
 }
 
@@ -88,7 +158,11 @@ export function getLocalCliToken(): string | null {
 }
 
 export function loginDashboard(baseUrl: string, password: string): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
+  if (loginInFlight) {
+    return loginInFlight;
+  }
+
+  const promise = new Promise<string>((resolve, reject) => {
     let target: URL;
     try {
       target = buildUrl(baseUrl, '/api/auth/login');
@@ -193,6 +267,12 @@ export function loginDashboard(baseUrl: string, password: string): Promise<strin
     req.write(postData);
     req.end();
   });
+
+  loginInFlight = promise.finally(() => {
+    loginInFlight = null;
+  });
+
+  return loginInFlight;
 }
 
 export async function getAuthContext(
@@ -226,7 +306,11 @@ export async function getAuthContext(
     }
   }
 
-  logDebug('Auth', `AuthContext resolved for ${targetBaseUrl} (hasSession=${Boolean(sessionToken)}, hasCli=${Boolean(localCliToken)})`);
+  const ctxKey = `${targetBaseUrl}|${Boolean(sessionToken)}|${Boolean(localCliToken)}`;
+  if (ctxKey !== lastAuthContextKey) {
+    lastAuthContextKey = ctxKey;
+    logDebug('Auth', `AuthContext resolved for ${targetBaseUrl} (hasSession=${Boolean(sessionToken)}, hasCli=${Boolean(localCliToken)})`);
+  }
 
   return {
     authToken: sessionToken,

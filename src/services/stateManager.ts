@@ -4,6 +4,7 @@ import { DashboardData, ExtensionConfig, RequestLogItem, UsageStats } from '../t
 let currentContext: vscode.ExtensionContext | undefined;
 let lastDashboard: DashboardData | undefined;
 let lastError: string | undefined;
+let lastLogError: string | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 let logStatusBarItem: vscode.StatusBarItem | undefined;
 let detailsPanel: vscode.WebviewPanel | undefined;
@@ -81,6 +82,15 @@ export function getLastError(): string | undefined {
 
 export function setLastError(error: string | undefined): void {
   lastError = error;
+}
+
+// Lỗi riêng cho luồng log/usage stats trên status bar
+export function getLastLogError(): string | undefined {
+  return lastLogError;
+}
+
+export function setLastLogError(error: string | undefined): void {
+  lastLogError = error;
 }
 
 export function getStatusBarItem(): vscode.StatusBarItem | undefined {

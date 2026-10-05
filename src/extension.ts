@@ -1,17 +1,14 @@
 import * as vscode from 'vscode';
-import { ExtensionConfig, AuthContext } from './types';
+import { ExtensionConfig } from './types';
 import {
-  SECRET_PASSWORD,
-  SECRET_SESSION_TOKEN,
-  SECRET_API_KEY,
-  getLocalCliToken,
-  loginDashboard,
-  getAuthContext
+  getAuthContext,
+  clearCliTokenCache
 } from './services/authManager';
 import {
   setCurrentContext,
   setLastDashboard,
   setLastError,
+  setLastLogError,
   getLastDashboard,
   getLastError,
   getActiveConfig,
@@ -170,6 +167,7 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
       if (e.affectsConfiguration('aiTokenUsage')) {
+        clearCliTokenCache();
         void refresh(context);
       }
     })
@@ -238,17 +236,29 @@ export async function refreshLogStatusBar(context: vscode.ExtensionContext): Pro
   if (config.showLogStatusBar === false) return;
   try {
     const auth = await getAuthContext(context, config);
-    if (auth) {
-      const [stats, logs] = await Promise.all([
-        fetchUsageStats(config, auth),
-        fetchRequestLogs(config, auth, 1, 50)
-      ]);
-      if (stats) setLastUsageStats(stats);
-      if (logs && logs.length > 0) setLastRecentLogs(logs);
+    if (!auth) {
+      setLastLogError('No credentials available');
       renderStatusBar(config);
+      return;
     }
-  } catch {
-    // Non-blocking background log telemetry refresh
+    const [stats, logs] = await Promise.all([
+      fetchUsageStats(config, auth),
+      fetchRequestLogs(config, auth, 1, 50)
+    ]);
+    if (stats) setLastUsageStats(stats);
+    if (logs && logs.length > 0) setLastRecentLogs(logs);
+    // Ghi nhận lỗi khi cả hai nguồn đều không trả dữ liệu; xóa lỗi khi thành công
+    setLastLogError(
+      !stats && (!logs || logs.length === 0)
+        ? `No data returned from ${config.baseUrl} (check credentials/server)`
+        : undefined
+    );
+    renderStatusBar(config);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logWarn('Extension', `Log status bar refresh failed: ${msg}`);
+    setLastLogError(msg);
+    renderStatusBar(config);
   }
 }
 
@@ -286,7 +296,7 @@ export async function refresh(
         cancellable: false
       },
       async () => {
-        await executeRefresh(context);
+        await executeRefresh(context, true);
       }
     );
     const lastErr = getLastError();
@@ -309,50 +319,39 @@ export async function refresh(
       );
     }
   } else {
-    await executeRefresh(context);
+    await executeRefresh(context, false);
   }
 }
 
-async function executeRefresh(context: vscode.ExtensionContext): Promise<void> {
+async function executeRefresh(
+  context: vscode.ExtensionContext,
+  isManual = false
+): Promise<void> {
+  if (isManual) {
+    clearCliTokenCache();
+  }
   setCurrentContext(context);
   const config = getConfig();
 
   // Run log status bar refresh in parallel immediately
   void refreshLogStatusBar(context);
 
-  const password = await context.secrets.get(SECRET_PASSWORD);
-  let sessionToken = await context.secrets.get(SECRET_SESSION_TOKEN);
-  const legacyApiKey = await context.secrets.get(SECRET_API_KEY);
-  const localCliToken = getLocalCliToken() ?? undefined;
+  const auth = await getAuthContext(context, config);
 
-  if (!password && !sessionToken && !legacyApiKey && !localCliToken) {
+  if (!auth) {
     setLastDashboard(undefined);
     setLastError(undefined);
     renderStatusBar(config, true);
     return;
   }
 
-  const auth: AuthContext = {
-    authToken: sessionToken,
-    password,
-    cliToken: localCliToken,
-    legacyApiKey,
-    baseUrl: config.baseUrl,
-    context
-  };
-
-  if (password && !auth.authToken) {
-    try {
-      auth.authToken = await loginDashboard(auth.baseUrl, password);
-      await context.secrets.store(SECRET_SESSION_TOKEN, auth.authToken);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      logError('Extension', `Re-login failed during refresh: ${msg}`, err);
-      setLastError(msg);
-      setLastDashboard(undefined);
-      renderStatusBar(config);
-      return;
-    }
+  if (auth.password && !auth.authToken) {
+    const msg = `Login failed for ${config.baseUrl}`;
+    logError('Extension', msg);
+    setLastError(msg);
+    setLastDashboard(undefined);
+    renderStatusBar(config);
+    return;
   }
 
   try {
