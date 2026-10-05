@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.3] - 2026-10-05
+
+### Cải tiến giao diện & Độ chính xác dữ liệu
+- 🎯 **Tự động nhận diện hạn mức thông minh**: Khắc phục tình trạng hiển thị lệch số liệu khi theo dõi nhiều tài khoản; tự động phát hiện và kết nối đúng mô hình sử dụng thực tế.
+- 🛡️ **Loại bỏ cảnh báo sai lệch**: Triệt tiêu hoàn toàn thông báo đỏ khi chưa phát sinh giao dịch hoặc hạn mức trống.
+- ⚡ **Giao diện bảng tinh gọn, chống tràn chữ**: Tối ưu định dạng hiển thị số liệu còn lại và phần trăm trên cùng một dòng, chấm dứt hiện tượng chữ rớt dòng trên bảng theo dõi.
+- 🏷️ **Phân biệt nguồn tài khoản trực quan**: Bổ sung ký hiệu nhà cung cấp ngắn gọn bên cạnh số thứ tự tài khoản, giúp người dùng nhận biết tức thì loại tài khoản mà không gây rối mắt.
+- 📊 **Cột trạng thái trực quan**: Tối giản biểu tượng trạng thái hoạt động, tối ưu không gian hiển thị cho các thông tin quan trọng.
+
 ## [1.1.2] - 2026-10-05
 
 ### Tối ưu hóa & Ổn định hệ thống
