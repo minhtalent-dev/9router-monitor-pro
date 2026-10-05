@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.2] - 2026-10-05
+
+### Tối ưu hóa & Ổn định hệ thống
+- ⚡ **Tối ưu tốc độ & bộ nhớ nền**: Giảm thiểu việc đọc dữ liệu đĩa lặp lại trong quá trình làm mới định kỳ, giúp ứng dụng vận hành nhẹ nhàng và mượt mà hơn.
+- 🧹 **Làm sạch nhật ký hoạt động**: Tinh gọn các thông báo hệ thống lặp lại, giữ bảng điều khiển chẩn đoán luôn rõ ràng và dễ theo dõi.
+- 🔒 **Đồng bộ kết nối ổn định**: Tránh xung đột kết nối khi gửi nhiều yêu cầu đồng thời đến hệ thống quản lý.
+- 🛡️ **Hiển thị thông báo lỗi rõ ràng**: Bổ sung cảnh báo chi tiết trên thanh trạng thái khi kết nối gián đoạn thay vì hiển thị dữ liệu trống.
+- 🌐 **Cải thiện tính tương thích đa nền tảng**: Nhận diện môi trường làm việc chính xác hơn trên nhiều hệ điều hành khác nhau.
+
 ## [1.1.1] - 2026-10-02
 
 ### Added
