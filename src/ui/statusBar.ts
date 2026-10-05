@@ -17,7 +17,9 @@ import {
 import { formatCompact, formatResetCompact } from '../utils/formatters';
 import {
   chooseQuotaName,
+  collectActiveModelNames,
   displayName,
+  findMatchingQuota,
   formatQuotaForStatus,
   getRemainingPercent,
   quotaShortName,
@@ -220,7 +222,21 @@ export function renderStatusBar(
       pinnedModels.length > 0
         ? pinnedModels
         : [chooseQuotaName(displayItems[0].usage, cfg.statusBarQuota) ?? ''];
-    const targetModels = rawModels.filter(Boolean);
+
+    const hasAnyMatch = rawModels.some((m) =>
+      displayItems.some(
+        (it) => findMatchingQuota(it.usage?.quotas, m) !== undefined
+      )
+    );
+
+    let targetModels: string[] = [];
+    if (hasAnyMatch) {
+      targetModels = rawModels.filter(Boolean);
+    } else {
+      const fallbackModels = collectActiveModelNames(displayItems, 3);
+      targetModels =
+        fallbackModels.length > 0 ? fallbackModels : rawModels.filter(Boolean);
+    }
 
     if (displayItems.every((it) => !it.usage || it.error)) {
       hasError = true;
@@ -236,7 +252,8 @@ export function renderStatusBar(
       let earliestReset: string | undefined;
 
       for (const item of displayItems) {
-        const q = item.usage?.quotas?.[m];
+        const match = findMatchingQuota(item.usage?.quotas, m);
+        const q = match?.quota;
         if (q) {
           found = true;
           totalUsed += q.used;
@@ -271,6 +288,8 @@ export function renderStatusBar(
             mode === 'detailed' ? formatResetCompact(earliestReset) : '';
           const resetTag = resetStr ? ` (${resetStr})` : '';
           aggParts.push(`${shortName} ∞${resetTag}`);
+        } else if (totalMax <= 0) {
+          aggParts.push(`${shortName} —`);
         } else if (mode === 'detailed') {
           const resetStr = formatResetCompact(earliestReset);
           const resetTag = resetStr ? ` (${resetStr})` : '';
@@ -318,21 +337,28 @@ export function renderStatusBar(
 
     let targetModelKeys: string[] = [];
     if (pinnedModels.length > 0 && usage?.quotas) {
-      targetModelKeys = pinnedModels.filter(
-        (m) => usage.quotas[m] !== undefined
-      );
+      for (const m of pinnedModels) {
+        const match = findMatchingQuota(usage.quotas, m);
+        if (match && !targetModelKeys.includes(match.key)) {
+          targetModelKeys.push(match.key);
+        }
+      }
     }
 
     if (targetModelKeys.length === 0) {
       const fallbackModel = chooseQuotaName(usage, cfg.statusBarQuota);
-      if (fallbackModel && usage?.quotas && usage.quotas[fallbackModel]) {
-        targetModelKeys = [fallbackModel];
+      if (fallbackModel && usage?.quotas) {
+        const match = findMatchingQuota(usage.quotas, fallbackModel);
+        if (match) {
+          targetModelKeys = [match.key];
+        }
       }
     }
 
     if (usage?.quotas) {
       for (const key of targetModelKeys) {
-        const q = usage.quotas[key];
+        const match = findMatchingQuota(usage.quotas, key);
+        const q = match?.quota ?? usage.quotas[key];
         if (q && !q.unlimited && q.total > 0) {
           const remPct = (q.remaining / q.total) * 100;
           if (remPct <= 5) {
@@ -357,7 +383,11 @@ export function renderStatusBar(
     let modelsStr = 'N/A';
     if (usage?.quotas && targetModelKeys.length > 0) {
       modelsStr = targetModelKeys
-        .map((key) => formatQuotaForStatus(key, usage.quotas[key], mode))
+        .map((key) => {
+          const match = findMatchingQuota(usage.quotas, key);
+          const q = match?.quota ?? usage.quotas[key];
+          return formatQuotaForStatus(match?.key ?? key, q, mode);
+        })
         .join(' · ');
     }
 

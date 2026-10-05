@@ -1,5 +1,207 @@
-import { ProviderConnection, QuotaData, UsageData } from '../types';
+import {
+  ProviderConnection,
+  QuotaData,
+  QuotaItem,
+  TargetAccount,
+  UsageData
+} from '../types';
 import { formatCompact, formatResetCompact } from './formatters';
+
+export function slugifyModelName(name: string): string {
+  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+export function findMatchingQuota(
+  quotas: Record<string, QuotaItem> | undefined,
+  targetModel: string
+): { key: string; quota: QuotaItem } | undefined {
+  if (!quotas || !targetModel) {
+    return undefined;
+  }
+
+  const trimmed = targetModel.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  // 1. Direct key match
+  if (quotas[trimmed]) {
+    return { key: trimmed, quota: quotas[trimmed] };
+  }
+
+  // 2. Case-insensitive exact match
+  const lowerTarget = trimmed.toLowerCase();
+  for (const [key, quota] of Object.entries(quotas)) {
+    if (key.toLowerCase() === lowerTarget) {
+      return { key, quota };
+    }
+  }
+
+  // 3. Normalized exact match (strip -, _, spaces, dots, lowercase)
+  const targetSlug = slugifyModelName(trimmed);
+  if (!targetSlug) {
+    return undefined;
+  }
+
+  for (const [key, quota] of Object.entries(quotas)) {
+    if (slugifyModelName(key) === targetSlug) {
+      return { key, quota };
+    }
+  }
+
+  // 4. Prefix / Alias match (startsWith)
+  const prefixMatches: Array<{ key: string; quota: QuotaItem; diff: number }> = [];
+  for (const [key, quota] of Object.entries(quotas)) {
+    const keySlug = slugifyModelName(key);
+    if (keySlug.length >= 3 && targetSlug.length >= 3) {
+      if (keySlug.startsWith(targetSlug) || targetSlug.startsWith(keySlug)) {
+        prefixMatches.push({
+          key,
+          quota,
+          diff: Math.abs(keySlug.length - targetSlug.length)
+        });
+      }
+    }
+  }
+
+  if (prefixMatches.length > 0) {
+    prefixMatches.sort((a, b) => a.diff - b.diff);
+    return { key: prefixMatches[0].key, quota: prefixMatches[0].quota };
+  }
+
+  // 5. Substring match (includes)
+  const substringMatches: Array<{ key: string; quota: QuotaItem; diff: number }> = [];
+  for (const [key, quota] of Object.entries(quotas)) {
+    const keySlug = slugifyModelName(key);
+    if (keySlug.length >= 3 && targetSlug.length >= 3) {
+      if (keySlug.includes(targetSlug) || targetSlug.includes(keySlug)) {
+        substringMatches.push({
+          key,
+          quota,
+          diff: Math.abs(keySlug.length - targetSlug.length)
+        });
+      }
+    }
+  }
+
+  if (substringMatches.length > 0) {
+    substringMatches.sort((a, b) => a.diff - b.diff);
+    return { key: substringMatches[0].key, quota: substringMatches[0].quota };
+  }
+
+  return undefined;
+}
+
+export function collectActiveModelNames(
+  targets: TargetAccount[],
+  limit = 3
+): string[] {
+  if (!targets || targets.length === 0) {
+    return [];
+  }
+
+  const priorityKeys = [
+    'gemini-3.8-flash-high',
+    'claude-sonnet-4-6',
+    'session',
+    'weekly',
+    'gemini_weekly',
+    'claude_gpt_weekly'
+  ];
+
+  interface ModelCandidate {
+    key: string;
+    normalizedKey: string;
+    accountCount: number;
+    totalUsed: number;
+    totalRemaining: number;
+    totalMax: number;
+    priorityIndex: number;
+  }
+
+  const candidateMap = new Map<string, ModelCandidate>();
+
+  for (const t of targets) {
+    const quotas = t.usage?.quotas;
+    if (!quotas) {
+      continue;
+    }
+    for (const [key, q] of Object.entries(quotas)) {
+      const norm = slugifyModelName(key);
+      if (!norm) {
+        continue;
+      }
+
+      let groupKey = norm;
+      for (const [existingNorm] of candidateMap.entries()) {
+        if (
+          existingNorm === norm ||
+          (existingNorm.length >= 6 &&
+            norm.length >= 6 &&
+            (existingNorm.startsWith(norm) || norm.startsWith(existingNorm)))
+        ) {
+          groupKey = existingNorm;
+          break;
+        }
+      }
+
+      let cand = candidateMap.get(groupKey);
+      if (!cand) {
+        let pIndex = priorityKeys.findIndex((pk) => {
+          const pNorm = slugifyModelName(pk);
+          return (
+            pNorm === norm ||
+            norm.startsWith(pNorm) ||
+            pNorm.startsWith(norm)
+          );
+        });
+        if (pIndex === -1) {
+          pIndex = 999;
+        }
+        cand = {
+          key,
+          normalizedKey: norm,
+          accountCount: 0,
+          totalUsed: 0,
+          totalRemaining: 0,
+          totalMax: 0,
+          priorityIndex: pIndex
+        };
+        candidateMap.set(groupKey, cand);
+      }
+
+      cand.accountCount += 1;
+      cand.totalUsed += q.used ?? 0;
+      cand.totalRemaining += q.remaining ?? 0;
+      cand.totalMax += q.total ?? 0;
+    }
+  }
+
+  const candidates = Array.from(candidateMap.values());
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  candidates.sort((a, b) => {
+    const aUsed = a.totalUsed > 0 ? 1 : 0;
+    const bUsed = b.totalUsed > 0 ? 1 : 0;
+    if (aUsed !== bUsed) {
+      return bUsed - aUsed;
+    }
+    if (a.accountCount !== b.accountCount) {
+      return b.accountCount - a.accountCount;
+    }
+    if (a.priorityIndex !== b.priorityIndex) {
+      return a.priorityIndex - b.priorityIndex;
+    }
+    if (a.totalMax !== b.totalMax) {
+      return b.totalMax - a.totalMax;
+    }
+    return b.totalRemaining - a.totalRemaining;
+  });
+
+  return candidates.slice(0, Math.max(1, limit)).map((c) => c.key);
+}
 
 export function truncateName(name: string, maxLen: number): string {
   if (name.length <= maxLen) {
@@ -20,8 +222,11 @@ export function chooseQuotaName(
   if (!usage || !usage.quotas) {
     return undefined;
   }
-  if (preferred && usage.quotas[preferred]) {
-    return preferred;
+  if (preferred) {
+    const match = findMatchingQuota(usage.quotas, preferred);
+    if (match) {
+      return match.key;
+    }
   }
   const priorityKeys = [
     'gemini-3.8-flash-high',
@@ -32,8 +237,9 @@ export function chooseQuotaName(
     'claude-sonnet-4-6'
   ];
   for (const key of priorityKeys) {
-    if (usage.quotas[key]) {
-      return key;
+    const match = findMatchingQuota(usage.quotas, key);
+    if (match) {
+      return match.key;
     }
   }
   return Object.keys(usage.quotas)[0];
@@ -101,6 +307,9 @@ export function formatQuotaForStatus(
       mode === 'detailed' ? formatResetCompact(quota.resetAt) : '';
     const resetTag = resetStr ? ` (${resetStr})` : '';
     return `${short} ∞${resetTag}`;
+  }
+  if (quota.total <= 0) {
+    return `${short} —`;
   }
   if (mode === 'detailed') {
     const resetStr = formatResetCompact(quota.resetAt);

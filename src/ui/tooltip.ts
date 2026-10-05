@@ -21,13 +21,44 @@ import {
 } from '../utils/formatters';
 import {
   chooseQuotaName,
+  collectActiveModelNames,
   connectionPlan,
   displayName,
+  findMatchingQuota,
   getRemainingPercent,
   getUsedPercent,
   quotaTitle,
   truncateName
 } from '../utils/helpers';
+
+export function shortenProvider(provider?: string): string {
+  if (!provider) {
+    return '';
+  }
+  const p = provider.trim().toLowerCase();
+  switch (p) {
+    case 'antigravity':
+      return 'ag';
+    case 'codex':
+      return 'cdx';
+    case 'cursor':
+      return 'cur';
+    case 'commandcode':
+      return 'cmd';
+    case 'copilot':
+      return 'cpl';
+    case 'gemini':
+      return 'gem';
+    case 'openai':
+      return 'oai';
+    case 'claude':
+      return 'cld';
+    case 'deepseek':
+      return 'dsk';
+    default:
+      return p.length <= 4 ? p : p.substring(0, 3);
+  }
+}
 
 export function createDashboardTooltip(
   data: DashboardData,
@@ -90,7 +121,31 @@ export function createDashboardTooltip(
       pinnedModels.length > 0
         ? pinnedModels
         : [chooseQuotaName(targets[0]?.usage, cfg.statusBarQuota) ?? ''];
-    const modelsToTrack = rawModels.filter(Boolean);
+
+    const hasAnyMatch = rawModels.some((m) =>
+      targets.some((t) => findMatchingQuota(t.usage?.quotas, m) !== undefined)
+    );
+
+    let modelsToTrack: string[] = [];
+    let isAutoDetected = false;
+
+    if (hasAnyMatch) {
+      modelsToTrack = rawModels.filter(Boolean);
+    } else {
+      const fallbackModels = collectActiveModelNames(targets, 3);
+      if (fallbackModels.length > 0) {
+        modelsToTrack = fallbackModels;
+        if (pinnedModels.length > 0) {
+          isAutoDetected = true;
+        }
+      } else {
+        modelsToTrack = rawModels.filter(Boolean);
+      }
+    }
+
+    if (isAutoDetected) {
+      md.appendMarkdown('*(Auto-detected models for pinned accounts)*\n\n');
+    }
 
     const tooltipMode = cfg.tooltipDisplayMode ?? 'all';
     const showSummary = tooltipMode === 'all' || tooltipMode === 'summary';
@@ -108,10 +163,13 @@ export function createDashboardTooltip(
         let totalRemaining = 0;
         let hasUnlimited = false;
         let earliestReset: string | undefined;
+        let totalAccountsHavingModel = 0;
 
         for (const t of targets) {
-          const q = t.usage?.quotas?.[m];
+          const match = findMatchingQuota(t.usage?.quotas, m);
+          const q = match?.quota;
           if (q) {
+            totalAccountsHavingModel++;
             totalUsed += q.used;
             totalMax += q.total;
             totalRemaining += q.remaining;
@@ -129,27 +187,42 @@ export function createDashboardTooltip(
           }
         }
 
-        const usedPct =
-          hasUnlimited || totalMax <= 0
-            ? 0
-            : Math.min(100, Math.max(0, (totalUsed / totalMax) * 100));
-        const remPct =
-          hasUnlimited
-            ? 100
-            : totalMax <= 0
-              ? 0
-              : Math.min(100, Math.max(0, (totalRemaining / totalMax) * 100));
-        const remStr = hasUnlimited ? '∞' : formatCompact(totalRemaining);
-        const maxStr = hasUnlimited ? '∞' : formatCompact(totalMax);
-        const pctStr = hasUnlimited ? 'N/A' : `${usedPct.toFixed(1)}%`;
-        const healthIcon = hasUnlimited ? '🟢' : getHealthIcon(remPct);
-        const barStr = hasUnlimited
-          ? '—'
-          : `${healthIcon} ${renderTextBar(usedPct, 8)}`;
-        const resetCol = formatResetCompact(earliestReset) || '—';
+        let remStr: string;
+        let maxStr: string;
+        let pctStr: string;
+        let resetCol: string;
+        let barStr: string;
+
+        if (totalAccountsHavingModel === 0 || (!hasUnlimited && totalMax <= 0)) {
+          remStr = '—';
+          maxStr = '—';
+          pctStr = '—';
+          resetCol = '—';
+          barStr = '⚪ —';
+        } else if (hasUnlimited) {
+          remStr = '∞';
+          maxStr = '∞';
+          pctStr = 'N/A';
+          resetCol = formatResetCompact(earliestReset) || '—';
+          barStr = '—';
+        } else {
+          const usedPct = Math.min(100, Math.max(0, (totalUsed / totalMax) * 100));
+          const remPct = Math.min(100, Math.max(0, (totalRemaining / totalMax) * 100));
+          remStr = formatCompact(totalRemaining);
+          maxStr = formatCompact(totalMax);
+          pctStr = `${usedPct.toFixed(1)}%`;
+          const healthIcon = getHealthIcon(remPct);
+          barStr = `${healthIcon} ${renderTextBar(usedPct, 8)}`;
+          resetCol = formatResetCompact(earliestReset) || '—';
+        }
+
+        const ratioCol =
+          remStr === '—' && maxStr === '—'
+            ? '—'
+            : `**${remStr}** / ${maxStr}`;
 
         md.appendMarkdown(
-          `| **${quotaTitle(m)}** | **${remStr}** / ${maxStr} | ${pctStr} | ${resetCol} | ${barStr} |\n`
+          `| **${quotaTitle(m)}** | ${ratioCol} | ${pctStr} | ${resetCol} | ${barStr} |\n`
         );
       }
       md.appendMarkdown('\n');
@@ -157,9 +230,11 @@ export function createDashboardTooltip(
 
     // Account Details
     if (showAccounts) {
-      md.appendMarkdown(`#### 👥 Account Details (${targets.length} Accounts)\n\n`);
-      const modelHeaders = modelsToTrack.map((m) => quotaTitle(m));
-      const headerCols = ['#', '👤 Account', ...modelHeaders, '⚡ Status'];
+      md.appendMarkdown(`### 👥 Account Details (${targets.length} Accounts)\n\n`);
+      const modelHeaders = modelsToTrack.map((m) =>
+        quotaTitle(m).replace(/\s+Weekly$/i, ' (W)')
+      );
+      const headerCols = ['#', '👤 Account', ...modelHeaders, '⚡'];
       const alignCols = [
         ':--',
         ':---',
@@ -172,22 +247,23 @@ export function createDashboardTooltip(
       for (const t of targets) {
         const conn = t.connection;
         const isPinnedAcc = pinnedAccountIds.includes(conn.id);
-        const accNum = `${isPinnedAcc ? '⭐' : ''}#${conn.priority}`;
+        const pShort = shortenProvider(conn.provider);
+        const provTag = pShort ? `·${pShort}` : '';
+        const accNum = `${isPinnedAcc ? '⭐' : ''}#${conn.priority}${provTag}`;
         const accName = truncateName(displayName(conn), 12);
-        const statusIcon = conn.isActive ? '🟢 Active' : '⚪ Inactive';
+        const statusIcon = conn.isActive ? '🟢' : '⚪';
 
         const modelCols = modelsToTrack.map((m) => {
-          const q = t.usage?.quotas?.[m];
+          const match = findMatchingQuota(t.usage?.quotas, m);
+          const q = match?.quota;
           if (!q) {
-            return '-';
+            return '—';
           }
           if (q.unlimited) {
-            return '**∞** / ∞';
+            return '∞';
           }
-          const rem = formatCompact(q.remaining);
-          const tot = formatCompact(q.total);
-          const pct = Math.round(getUsedPercent(q));
-          return `**${rem}** / ${tot} (${pct}%)`;
+          const usedPct = q.total > 0 ? Math.round((q.used / q.total) * 100) : 0;
+          return `${formatCompact(q.remaining)} (${usedPct}%)`;
         });
 
         md.appendMarkdown(
@@ -210,7 +286,16 @@ export function createDashboardTooltip(
     );
 
     const quotas = target.usage?.quotas ?? {};
-    let singleModels = pinnedModels.filter((m) => quotas[m] !== undefined);
+    let singleModels: string[] = [];
+    if (pinnedModels.length > 0) {
+      for (const pm of pinnedModels) {
+        const match = findMatchingQuota(quotas, pm);
+        if (match && !singleModels.includes(match.key)) {
+          singleModels.push(match.key);
+        }
+      }
+    }
+
     if (singleModels.length === 0) {
       const activeEntries = Object.entries(quotas)
         .filter(([, q]) => q.used > 0)
@@ -227,8 +312,14 @@ export function createDashboardTooltip(
       md.appendMarkdown('|:---|:---:|:---:|:---:|:---:|\n');
 
       for (const m of singleModels) {
-        const q = quotas[m];
-        const isPinnedModel = pinnedModels.includes(m);
+        const match = findMatchingQuota(quotas, m);
+        const q = match?.quota ?? quotas[m];
+        if (!q) {
+          continue;
+        }
+        const isPinnedModel = pinnedModels.some(
+          (pm) => pm === m || findMatchingQuota(quotas, pm)?.key === m
+        );
         const usedPct = getUsedPercent(q);
         const remPct = getRemainingPercent(q);
         const rem = q.unlimited ? '∞' : formatCompact(q.remaining);

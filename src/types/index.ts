@@ -27,6 +27,8 @@ export interface QuotaData {
   unlimited: boolean;
 }
 
+export type QuotaItem = QuotaData;
+
 export interface UsageData {
   plan?: string;
   limitReached: boolean;
@@ -40,6 +42,8 @@ export interface ProviderUsage {
   error?: string;
   warning?: string;
 }
+
+export type TargetAccount = ProviderUsage;
 
 export interface DashboardData {
   items: ProviderUsage[];
