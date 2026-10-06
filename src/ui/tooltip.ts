@@ -234,8 +234,9 @@ export function createDashboardTooltip(
       const modelHeaders = modelsToTrack.map((m) =>
         quotaTitle(m).replace(/\s+Weekly$/i, ' (W)')
       );
-      const headerCols = ['#', '👤 Account', ...modelHeaders, '⚡'];
+      const headerCols = ['Prov', '#', '👤 Account', ...modelHeaders, '⚡'];
       const alignCols = [
+        ':---:',
         ':--',
         ':---',
         ...modelsToTrack.map(() => ':---:'),
@@ -247,9 +248,8 @@ export function createDashboardTooltip(
       for (const t of targets) {
         const conn = t.connection;
         const isPinnedAcc = pinnedAccountIds.includes(conn.id);
-        const pShort = shortenProvider(conn.provider);
-        const provTag = pShort ? `·${pShort}` : '';
-        const accNum = `${isPinnedAcc ? '⭐' : ''}#${conn.priority}${provTag}`;
+        const provCode = shortenProvider(conn.provider) || '—';
+        const accNum = `${isPinnedAcc ? '⭐' : ''}#${conn.priority}`;
         const accName = truncateName(displayName(conn), 12);
         const statusIcon = conn.isActive ? '🟢' : '⚪';
 
@@ -267,7 +267,7 @@ export function createDashboardTooltip(
         });
 
         md.appendMarkdown(
-          `| ${accNum} | ${accName} | ${modelCols.join(' | ')} | ${statusIcon} |\n`
+          `| ${provCode} | ${accNum} | ${accName} | ${modelCols.join(' | ')} | ${statusIcon} |\n`
         );
       }
       md.appendMarkdown('\n');

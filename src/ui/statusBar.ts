@@ -52,94 +52,126 @@ export function initStatusBar(
   return statusBarItem;
 }
 
-export function renderStatusBar(
+// Chống nháy (Anti-flicker Diffing Guard): Chỉ cập nhật khi nội dung thực sự thay đổi
+function updateStatusBarTooltip(
+  item: vscode.StatusBarItem,
+  nextTooltip: vscode.MarkdownString | string | undefined
+): void {
+  if (!item.tooltip) {
+    item.tooltip = nextTooltip;
+    return;
+  }
+  const currentStr =
+    typeof item.tooltip === 'string' ? item.tooltip : item.tooltip.value;
+  const nextStr =
+    typeof nextTooltip === 'string' ? nextTooltip : nextTooltip?.value;
+
+  if (currentStr !== nextStr) {
+    item.tooltip = nextTooltip;
+  }
+}
+
+function updateStatusBarText(
+  item: vscode.StatusBarItem,
+  nextText: string
+): void {
+  if (item.text !== nextText) {
+    item.text = nextText;
+  }
+}
+
+export function renderLogStatusBar(cfg: ExtensionConfig): void {
+  const logItem = getLogStatusBarItem();
+  if (!logItem) return;
+
+  if (cfg.showLogStatusBar !== false) {
+    logItem.show();
+  } else {
+    logItem.hide();
+  }
+  const stats = getLastUsageStats();
+  const logs = getLastRecentLogs();
+  const limit = getLogTooltipLimit();
+  const tooltipMode = cfg.logTooltipDisplayMode ?? 'all';
+  const nextTooltip = createLogStatusBarTooltip(stats, logs, limit, tooltipMode);
+  updateStatusBarTooltip(logItem, nextTooltip);
+
+  const logStyle = cfg.logStatusDisplayMode ?? 'minimal';
+  const totalReq = formatCompact(stats?.totalRequests ?? 0);
+  const cost = Math.round(Number(stats?.totalCost || 0));
+  const lastLog = logs && logs.length > 0 ? logs[0] : undefined;
+
+  let pulse = '';
+  let lastModelStr = '';
+  let lastTokensStr = '';
+  let hasRecentError = false;
+
+  if (lastLog) {
+    const isOk =
+      (lastLog.status || '').toLowerCase() === 'ok' ||
+      lastLog.status === '200' ||
+      lastLog.status === 'success';
+    pulse = isOk ? '🟢' : '🔴';
+    hasRecentError = !isOk;
+    lastModelStr = quotaShortName(lastLog.model || '');
+    const inStr = formatCompact(lastLog.inTokens ?? 0);
+    const outStr = formatCompact(lastLog.outTokens ?? 0);
+    lastTokensStr = `${inStr}/${outStr}`;
+  }
+
+  let nextText = '$(terminal) ';
+  if (logStyle === 'compact') {
+    const parts: string[] = [];
+    if (stats?.totalRequests) {
+      parts.push(`${totalReq} req`);
+    }
+    if (lastModelStr) {
+      parts.push(`${lastModelStr} ${pulse}`.trim());
+    } else if (pulse) {
+      parts.push(pulse);
+    }
+    const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
+    nextText = `$(terminal) ${suffix}`;
+  } else if (logStyle === 'detailed') {
+    const parts: string[] = [];
+    if (stats?.totalRequests) {
+      parts.push(`${totalReq} req`);
+    }
+    if (stats?.totalCost !== undefined) {
+      parts.push(`$${cost}`);
+    }
+    if (lastModelStr && lastTokensStr) {
+      parts.push(`${lastModelStr} ${lastTokensStr} ${pulse}`.trim());
+    } else if (lastModelStr) {
+      parts.push(`${lastModelStr} ${pulse}`.trim());
+    } else if (pulse) {
+      parts.push(pulse);
+    }
+    const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
+    nextText = `$(terminal) ${suffix}`;
+  }
+
+  updateStatusBarText(logItem, nextText);
+
+  if (hasRecentError) {
+    logItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+  } else {
+    logItem.backgroundColor = undefined;
+  }
+}
+
+export function renderQuotaStatusBar(
   cfg: ExtensionConfig,
   missingKey = false
 ): void {
-  const logItem = getLogStatusBarItem();
-  if (logItem) {
-    if (cfg.showLogStatusBar !== false) {
-      logItem.show();
-    } else {
-      logItem.hide();
-    }
-    const stats = getLastUsageStats();
-    const logs = getLastRecentLogs();
-    const limit = getLogTooltipLimit();
-    const tooltipMode = cfg.logTooltipDisplayMode ?? 'all';
-    logItem.tooltip = createLogStatusBarTooltip(stats, logs, limit, tooltipMode);
-
-    const logStyle = cfg.logStatusDisplayMode ?? 'minimal';
-    const totalReq = formatCompact(stats?.totalRequests ?? 0);
-    const cost = Math.round(Number(stats?.totalCost || 0));
-    const lastLog = logs && logs.length > 0 ? logs[0] : undefined;
-
-    let pulse = '';
-    let lastModelStr = '';
-    let lastTokensStr = '';
-    let hasRecentError = false;
-
-    if (lastLog) {
-      const isOk =
-        (lastLog.status || '').toLowerCase() === 'ok' ||
-        lastLog.status === '200' ||
-        lastLog.status === 'success';
-      pulse = isOk ? '🟢' : '🔴';
-      hasRecentError = !isOk;
-      lastModelStr = quotaShortName(lastLog.model || '');
-      const inStr = formatCompact(lastLog.inTokens ?? 0);
-      const outStr = formatCompact(lastLog.outTokens ?? 0);
-      lastTokensStr = `${inStr}/${outStr}`;
-    }
-
-    if (logStyle === 'compact') {
-      const parts: string[] = [];
-      if (stats?.totalRequests) {
-        parts.push(`${totalReq} req`);
-      }
-      if (lastModelStr) {
-        parts.push(`${lastModelStr} ${pulse}`.trim());
-      } else if (pulse) {
-        parts.push(pulse);
-      }
-      const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
-      logItem.text = `$(terminal) ${suffix}`;
-    } else if (logStyle === 'detailed') {
-      const parts: string[] = [];
-      if (stats?.totalRequests) {
-        parts.push(`${totalReq} req`);
-      }
-      if (stats?.totalCost !== undefined) {
-        parts.push(`$${cost}`);
-      }
-      if (lastModelStr && lastTokensStr) {
-        parts.push(`${lastModelStr} ${lastTokensStr} ${pulse}`.trim());
-      } else if (lastModelStr) {
-        parts.push(`${lastModelStr} ${pulse}`.trim());
-      } else if (pulse) {
-        parts.push(pulse);
-      }
-      const suffix = parts.length > 0 ? ` · ${parts.join(' · ')}` : '';
-      logItem.text = `$(terminal) ${suffix}`;
-    } else {
-      logItem.text = '$(terminal) ';
-    }
-
-    if (hasRecentError) {
-      logItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
-    } else {
-      logItem.backgroundColor = undefined;
-    }
-  }
-
   const statusBarItem = getStatusBarItem();
   if (!statusBarItem) {
     return;
   }
 
   if (missingKey) {
-    statusBarItem.text = '$(key) 9Router: Not Connected';
-    statusBarItem.tooltip = 'Click to setup 9Router URL & Password.';
+    updateStatusBarText(statusBarItem, '$(key) 9Router: Not Connected');
+    updateStatusBarTooltip(statusBarItem, 'Click to setup 9Router URL & Password.');
     statusBarItem.command = 'aiTokenUsage.setConnection';
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       'statusBarItem.warningBackground'
@@ -153,7 +185,7 @@ export function renderStatusBar(
   const lastDashboard = getLastDashboard();
 
   if (lastError && !lastDashboard) {
-    statusBarItem.text = '$(error) 9Router: Error';
+    updateStatusBarText(statusBarItem, '$(error) 9Router: Error');
     const errMd = new vscode.MarkdownString(undefined, true);
     errMd.isTrusted = true;
     errMd.appendMarkdown(`### $(error) 9Router: Error\n\n`);
@@ -161,7 +193,7 @@ export function renderStatusBar(
     errMd.appendMarkdown(
       `[$(gear) Setup Connection](command:aiTokenUsage.setConnection) &nbsp;│&nbsp; [$(refresh) Retry](command:aiTokenUsage.refresh)\n`
     );
-    statusBarItem.tooltip = errMd;
+    updateStatusBarTooltip(statusBarItem, errMd);
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       'statusBarItem.errorBackground'
     );
@@ -169,15 +201,15 @@ export function renderStatusBar(
   }
 
   if (!lastDashboard) {
-    statusBarItem.text = '$(sync~spin) 9Router...';
-    statusBarItem.tooltip = 'Loading providers and usage statistics...';
+    updateStatusBarText(statusBarItem, '$(sync~spin) 9Router...');
+    updateStatusBarTooltip(statusBarItem, 'Loading providers and usage statistics...');
     statusBarItem.backgroundColor = undefined;
     return;
   }
 
   if (lastDashboard.items.length === 0) {
-    statusBarItem.text = '$(warning) 9Router: No Providers';
-    statusBarItem.tooltip = 'No active provider connections found.';
+    updateStatusBarText(statusBarItem, '$(warning) 9Router: No Providers');
+    updateStatusBarTooltip(statusBarItem, 'No active provider connections found.');
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       'statusBarItem.warningBackground'
     );
@@ -204,8 +236,8 @@ export function renderStatusBar(
   }
 
   if (displayItems.length === 0) {
-    statusBarItem.text = '$(warning) 9Router: No Providers';
-    statusBarItem.tooltip = 'No active provider connections found.';
+    updateStatusBarText(statusBarItem, '$(warning) 9Router: No Providers');
+    updateStatusBarTooltip(statusBarItem, 'No active provider connections found.');
     statusBarItem.backgroundColor = new vscode.ThemeColor(
       'statusBarItem.warningBackground'
     );
@@ -316,11 +348,11 @@ export function renderStatusBar(
 
     const modelsSummary = aggParts.length > 0 ? aggParts.join(' · ') : 'N/A';
     if (mode === 'minimal') {
-      statusBarItem.text = `${icon} ${modelsSummary}`;
+      updateStatusBarText(statusBarItem, `${icon} ${modelsSummary}`);
     } else if (mode === 'compact') {
-      statusBarItem.text = `${icon} ${displayItems.length}⭐ · ${modelsSummary}`;
+      updateStatusBarText(statusBarItem, `${icon} ${displayItems.length}⭐ · ${modelsSummary}`);
     } else {
-      statusBarItem.text = `${icon} ⭐ ${displayItems.length} acc · ${modelsSummary}`;
+      updateStatusBarText(statusBarItem, `${icon} ⭐ ${displayItems.length} acc · ${modelsSummary}`);
     }
     statusBarItem.backgroundColor = bg;
   } else {
@@ -392,17 +424,27 @@ export function renderStatusBar(
     }
 
     if (mode === 'minimal') {
-      statusBarItem.text = `${icon} ${modelsStr}`;
+      updateStatusBarText(statusBarItem, `${icon} ${modelsStr}`);
     } else {
-      statusBarItem.text = `${icon} ${
+      updateStatusBarText(statusBarItem, `${icon} ${
         isAccountPinned ? '⭐ ' : ''
-      }${accName} · ${modelsStr}`;
+      }${accName} · ${modelsStr}`);
     }
     statusBarItem.backgroundColor = bg;
   }
-  statusBarItem.tooltip = createDashboardTooltip(
+  const nextTooltip = createDashboardTooltip(
     lastDashboard,
     displayItems,
     cfg
   );
+  updateStatusBarTooltip(statusBarItem, nextTooltip);
 }
+
+export function renderStatusBar(
+  cfg: ExtensionConfig,
+  missingKey = false
+): void {
+  renderLogStatusBar(cfg);
+  renderQuotaStatusBar(cfg, missingKey);
+}
+

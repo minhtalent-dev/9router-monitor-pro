@@ -107,3 +107,14 @@ export interface IntervalOption {
   seconds: number;
   isCustom?: boolean;
 }
+
+export interface SharedCachePayload {
+  version: number;
+  quotaUpdatedAt: number;
+  logsUpdatedAt: number;
+  dashboard?: DashboardData;
+  usageStats?: UsageStats;
+  recentLogs?: RequestLogItem[];
+  lastError?: string;
+  lastLogError?: string;
+}

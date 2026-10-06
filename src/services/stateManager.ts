@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { DashboardData, ExtensionConfig, RequestLogItem, UsageStats } from '../types';
+import { DashboardData, ExtensionConfig, RequestLogItem, SharedCachePayload, UsageStats } from '../types';
 
 let currentContext: vscode.ExtensionContext | undefined;
 let lastDashboard: DashboardData | undefined;
@@ -91,6 +91,24 @@ export function getLastLogError(): string | undefined {
 
 export function setLastLogError(error: string | undefined): void {
   lastLogError = error;
+}
+
+export function applySharedCacheSnapshot(snapshot: SharedCachePayload): void {
+  if (snapshot.dashboard) {
+    lastDashboard = snapshot.dashboard;
+  }
+  if (snapshot.usageStats) {
+    lastUsageStats = snapshot.usageStats;
+  }
+  if (snapshot.recentLogs && snapshot.recentLogs.length > 0) {
+    lastRecentLogs = snapshot.recentLogs;
+  }
+  if (snapshot.lastError !== undefined) {
+    lastError = snapshot.lastError;
+  }
+  if (snapshot.lastLogError !== undefined) {
+    lastLogError = snapshot.lastLogError;
+  }
 }
 
 export function getStatusBarItem(): vscode.StatusBarItem | undefined {
