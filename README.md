@@ -189,11 +189,11 @@ antigravity --install-extension minhtalent-dev.9router-monitor-pro
 ### Option 3 · Offline VSIX Package
 
 For air-gapped environments or manual installations:
-1. Download the latest `9router-monitor-pro-1.1.3.vsix` from [GitHub Releases](https://github.com/minhtalent-dev/9router-monitor-pro/releases).
+1. Download the latest `9router-monitor-pro-1.1.4.vsix` from [GitHub Releases](https://github.com/minhtalent-dev/9router-monitor-pro/releases).
 2. Open Extensions view (`Ctrl+Shift+X`) -> click the `...` menu (Views and More Actions) -> select **Install from VSIX...**
 3. Or install via terminal:
    ```bash
-   code --install-extension 9router-monitor-pro-1.1.3.vsix --force
+   code --install-extension 9router-monitor-pro-1.1.4.vsix --force
    ```
 
 ---

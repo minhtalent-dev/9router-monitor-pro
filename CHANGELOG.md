@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.4] - 2026-10-06
+
+### Hiệu năng & Trải nghiệm người dùng
+- ⚡ **Đồng bộ đa cửa sổ siêu tốc & tiết kiệm tài nguyên**: Tự động chia sẻ dữ liệu làm việc giữa nhiều cửa sổ mở cùng lúc, giảm hơn 80% lưu lượng mạng và giúp máy trạm vận hành mượt mà.
+- 🌿 **Chế độ tiết kiệm năng lượng thông minh**: Tự động tạm ngưng cập nhật khi cửa sổ chạy ẩn hoặc thu nhỏ, lập tức làm mới ngay khi người dùng quay lại làm việc.
+- 🛡️ **Triệt tiêu hiện tượng nhấp nháy bảng theo dõi**: Cố định giao diện hiển thị khi rà chuột qua thanh trạng thái, loại bỏ hoàn toàn tình trạng bảng thông tin bị chớp tắt.
+- 🔒 **Chống nghẽn kết nối khi khởi động**: Điều phối các yêu cầu kết nối tuần tự, ổn định kết nối ngay cả khi sử dụng qua mạng từ xa hoặc đường truyền chậm.
+- 📊 **Tách biệt cột nguồn tài khoản chuyên biệt**: Bổ sung cột ký hiệu nhà cung cấp riêng biệt (`Prov`) ở đầu bảng theo dõi, giữ số thứ tự tài khoản luôn sạch đẹp và dễ tra cứu.
+
 ## [1.1.3] - 2026-10-05
 
 ### Cải tiến giao diện & Độ chính xác dữ liệu
