@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.5] - 2026-10-07
+
+### Tính năng mới & Tiện ích kiểm tra kết nối
+- 🩺 **Kiểm tra sức khỏe kết nối 1-Click (Health Check)**: Cho phép kiểm tra nhanh toàn bộ các tài khoản đang hoạt động chỉ với một thao tác, chủ động phát hiện và cảnh báo sớm các tài khoản bị gián đoạn kết nối.
+- ⚡ **Kiểm tra độc lập trên từng tài khoản**: Bổ sung nút kiểm tra riêng biệt trên từng thẻ tài khoản trong bảng điều khiển, phản hồi tức thời tốc độ phản hồi (ms) và trạng thái kết nối.
+- 🎯 **Truy cập thuận tiện mọi nơi**: Bổ sung lối tắt kiểm tra kết nối tại chân bảng thông tin (Hover Popup), Menu thao tác nhanh (Quick Menu) và Bảng lệnh hệ thống (`Ctrl+Shift+P`).
+- 🛡️ **Kiểm soát tải đường truyền thông minh**: Tự động điều phối các yêu cầu kiểm tra tuần tự, đảm bảo quá trình kiểm thử mượt mà và không làm ảnh hưởng đến tốc độ mạng chung.
+
 ## [1.1.4] - 2026-10-06
 
 ### Hiệu năng & Trải nghiệm người dùng
