@@ -68,6 +68,11 @@ export function setCurrentContext(context: vscode.ExtensionContext | undefined):
   currentContext = context;
 }
 
+export function getExtensionVersion(context?: vscode.ExtensionContext): string {
+  const ctx = context ?? currentContext;
+  return ctx?.extension?.packageJSON?.version ?? '1.1.5';
+}
+
 export function getLastDashboard(): DashboardData | undefined {
   return lastDashboard;
 }

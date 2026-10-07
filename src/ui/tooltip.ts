@@ -8,6 +8,7 @@ import {
 } from '../types';
 import {
   getCurrentContext,
+  getExtensionVersion,
   getLastError,
   getLastLogError,
   getPinnedAccountIds,
@@ -101,14 +102,16 @@ export function createDashboardTooltip(
     }
   }
 
+  const version = getExtensionVersion(currentContext);
+
   if (targets.length === 0) {
     md.appendMarkdown(
-      '### 📊 9Router Monitor Pro · Multi-Account Quota Monitor\n\nNo active provider connections found.'
+      `### 📊 9Router Monitor Pro \`v${version}\` · Multi-Account Quota Monitor\n\nNo active provider connections found.`
     );
     return md;
   }
 
-  md.appendMarkdown('### 📊 9Router Monitor Pro · Multi-Account Quota Monitor\n\n');
+  md.appendMarkdown(`### 📊 9Router Monitor Pro \`v${version}\` · Multi-Account Quota Monitor\n\n`);
   const lastError = getLastError();
   if (lastError) {
     const safeMsg = lastError.replace(/[\\`*_{}[\]()#+\-.!|<>~&]/g, '\\$&');
@@ -397,7 +400,8 @@ export function createLogStatusBarTooltip(
   };
   md.supportHtml = true;
 
-  md.appendMarkdown('### 🖥️ 9Router Monitor Pro · Live System & Usage\n\n');
+  const version = getExtensionVersion();
+  md.appendMarkdown(`### 🖥️ 9Router Monitor Pro \`v${version}\` · Live System & Usage\n\n`);
 
   // Cảnh báo khi lần fetch log gần nhất lỗi (vẫn giữ dữ liệu cũ bên dưới)
   const logFetchError = getLastLogError();

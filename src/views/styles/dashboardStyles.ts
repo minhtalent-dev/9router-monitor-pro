@@ -381,6 +381,15 @@ export function getDashboardStyles(): string {
     border-color: #5a1e1e;
     background: #2d1111;
   }
+  .badge.version {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: #58a6ff;
+    background: #0d1f3c;
+    border: 1px solid #1f4470;
+  }
 
   /* Model Grid */
   .models-grid {
