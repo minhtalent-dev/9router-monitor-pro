@@ -58,6 +58,10 @@ export function renderProvidersTab(
       badgesHtml += `<span class="badge plan">${escHtml(plan)}</span>`;
     }
 
+    const testAccountBtnHtml = `<button class="test-account-btn" data-connection-id="${escHtml(
+      connection.id
+    )}" title="Test connection health">▶️ Test</button>`;
+
     const pinAccountBtnHtml = isPinnedAcc
       ? `<button class="pinned-account-btn active" data-account-id="${escHtml(
           connection.id
@@ -227,6 +231,7 @@ export function renderProvidersTab(
             <span class="name">${nameLabel}</span>
           </div>
           <div class="provider-header-actions">
+            ${testAccountBtnHtml}
             ${pinAccountBtnHtml}
             ${toggleBtnHtml}
             <div class="badges">${badgesHtml}</div>
@@ -258,6 +263,7 @@ export function renderProvidersTab(
             <option value="reset_asc"${preferredSort === 'reset_asc' ? ' selected' : ''}>Sort: Nearest Reset Time</option>
           </select>
         </div>
+        <button id="testAllConnectionsBtn" class="test-all-btn" title="Health check all provider connections">▶️ Test All</button>
       </div>
       <div class="toolbar-row-bottom">
         <div class="filter-chips">

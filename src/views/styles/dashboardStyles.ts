@@ -121,6 +121,32 @@ export function getDashboardStyles(): string {
   .sort-box select:focus {
     border-color: var(--blue);
   }
+  .test-all-btn {
+    background: #1f6feb;
+    border: 1px solid #388bfd;
+    color: #ffffff;
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .test-all-btn:hover {
+    background: #388bfd;
+  }
+  .test-all-btn:disabled, .test-all-btn.testing {
+    background: #21262d;
+    border-color: #30363d;
+    color: var(--text-muted);
+    cursor: wait;
+    opacity: 0.8;
+  }
   .toolbar-row-bottom {
     display: flex;
     align-items: center;
@@ -299,6 +325,32 @@ export function getDashboardStyles(): string {
     background: #5a1e1e;
     border-color: #f85149;
   }
+  .test-account-btn {
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #161b22;
+    color: var(--text-muted);
+  }
+  .test-account-btn:hover {
+    background: var(--btn-hover);
+    color: var(--text);
+    border-color: #8b949e;
+  }
+  .test-account-btn.testing {
+    cursor: wait;
+    opacity: 0.7;
+    background: #21262d;
+    color: var(--text-muted);
+  }
   .badges {
     display: flex;
     flex-wrap: wrap;
@@ -319,6 +371,16 @@ export function getDashboardStyles(): string {
   .badge.provider { color: #58a6ff; border-color: #1f4470; background: #0d1f3c; }
   .badge.active { color: var(--green); border-color: #1b4721; background: #0d2818; }
   .badge.inactive { color: var(--red); border-color: #5a1e1e; background: #2d1111; }
+  .badge.test-valid {
+    color: var(--green);
+    border-color: #1b4721;
+    background: #0d2818;
+  }
+  .badge.test-error {
+    color: var(--red);
+    border-color: #5a1e1e;
+    background: #2d1111;
+  }
 
   /* Model Grid */
   .models-grid {

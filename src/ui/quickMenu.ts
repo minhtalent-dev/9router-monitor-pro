@@ -20,7 +20,10 @@ import {
   SECRET_SESSION_TOKEN
 } from '../services/authManager';
 import { getConfig } from '../extension';
-import { updateProviderActive } from '../services/apiClient';
+import {
+  testAllProviderConnections,
+  updateProviderActive
+} from '../services/apiClient';
 import { formatCompact } from '../utils/formatters';
 import {
   connectionPlan,
@@ -781,6 +784,113 @@ async function showToggleAccountQuickPick(
   }
 }
 
+export async function testAllConnectionsAction(
+  context: vscode.ExtensionContext,
+  cfg: ExtensionConfig,
+  onRefresh?: (isManual?: boolean) => Promise<void>
+): Promise<void> {
+  const auth = await getAuthContext(context, cfg);
+  if (!auth) {
+    vscode.window.showErrorMessage(
+      '[9Router Pro] No authentication credentials found to test connections.'
+    );
+    return;
+  }
+
+  let dashboard = getLastDashboard();
+  let connections = dashboard?.items.map((it) => it.connection) ?? [];
+
+  if (connections.length === 0 && onRefresh) {
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: '9Router: Fetching provider connections...',
+        cancellable: false
+      },
+      async () => {
+        await onRefresh(true);
+      }
+    );
+    dashboard = getLastDashboard();
+    connections = dashboard?.items.map((it) => it.connection) ?? [];
+  }
+
+  if (connections.length === 0) {
+    vscode.window.showWarningMessage(
+      '[9Router Pro] No provider connections found to test.'
+    );
+    return;
+  }
+
+  const total = connections.length;
+  let hasAnyRefreshed = false;
+
+  await vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: '9Router: Testing Connections',
+      cancellable: true
+    },
+    async (progress, token) => {
+      progress.report({
+        message: `Starting test for ${total} accounts...`,
+        increment: 0
+      });
+
+      const summary = await testAllProviderConnections(
+        cfg,
+        auth,
+        connections,
+        (done, count, current) => {
+          const name = displayName(current);
+          const inc = (1 / count) * 100;
+          progress.report({
+            message: `(${done}/${count}) ${name}...`,
+            increment: inc
+          });
+        },
+        token
+      );
+
+      hasAnyRefreshed = summary.results.some((r) => r.refreshed);
+
+      if (summary.cancelled) {
+        vscode.window.showWarningMessage(
+          `[9Router Pro] Testing cancelled. ${summary.passed}/${summary.results.length} tested connections valid.`
+        );
+        return;
+      }
+
+      if (summary.failed === 0) {
+        vscode.window.showInformationMessage(
+          `[9Router Pro] All ${summary.passed} connection(s) verified healthy! (Avg: ${summary.avgLatencyMs}ms)`
+        );
+      } else {
+        const failedItems = summary.results
+          .filter((r) => !r.valid)
+          .map((r) => `${r.name} (${r.error || 'Failed'})`)
+          .join(', ');
+
+        const pick = await vscode.window.showWarningMessage(
+          `[9Router Pro] Tested ${summary.total}: ${summary.passed} passed, ${summary.failed} failed [${failedItems}]`,
+          'Open Dashboard',
+          'Refresh Data'
+        );
+
+        if (pick === 'Open Dashboard') {
+          await showDetails(context, cfg, onRefresh ?? (() => Promise.resolve()));
+        } else if (pick === 'Refresh Data' && onRefresh) {
+          await onRefresh(true);
+        }
+      }
+    }
+  );
+
+  if (hasAnyRefreshed && onRefresh) {
+    void onRefresh(false);
+  }
+}
+
 export async function openQuickMenu(
   context: vscode.ExtensionContext,
   cfg: ExtensionConfig,
@@ -817,6 +927,12 @@ export async function openQuickMenu(
       description: 'Active / Inactive',
       detail: 'Toggle provider account active status in 9Router',
       action: 'toggleAccount'
+    },
+    {
+      label: '$(play) Test All Connections...',
+      description: 'Health check all accounts',
+      detail: 'Test provider connections concurrently (limit 3) and report health status',
+      action: 'testAllConnections'
     },
     {
       label: '$(dashboard) Open Full Webview Dashboard',
@@ -920,6 +1036,9 @@ export async function openQuickMenu(
       break;
     case 'toggleAccount':
       await showToggleAccountQuickPick(context, onRefresh);
+      break;
+    case 'testAllConnections':
+      await testAllConnectionsAction(context, cfg, onRefresh);
       break;
     case 'openDashboard':
       await onShowDetails();

@@ -70,6 +70,7 @@ export function createDashboardTooltip(
     enabledCommands: [
       'aiTokenUsage.openQuickMenu',
       'aiTokenUsage.showDetails',
+      'aiTokenUsage.testAllConnections',
       'aiTokenUsage.openConsoleLog',
       'aiTokenUsage.openUsageAnalytics',
       'aiTokenUsage.showDebugLogs',
@@ -351,7 +352,7 @@ export function createDashboardTooltip(
         : 'Mode: All';
 
   md.appendMarkdown(
-    `---\n\n[⚡ Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;&nbsp; [🖥️ Dashboard](command:aiTokenUsage.showDetails) &nbsp;&nbsp; [🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;&nbsp; [📈 Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;&nbsp; [⚙️ ${toggleLabel}](command:aiTokenUsage.toggleTooltipMode) &nbsp;&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
+    `---\n\n[⚡ Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;&nbsp; [🖥️ Dashboard](command:aiTokenUsage.showDetails) &nbsp;&nbsp; [▶️ Test All](command:aiTokenUsage.testAllConnections) &nbsp;&nbsp; [🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;&nbsp; [📈 Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;&nbsp; [⚙️ ${toggleLabel}](command:aiTokenUsage.toggleTooltipMode) &nbsp;&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
   );
 
   return md;
@@ -383,6 +384,7 @@ export function createLogStatusBarTooltip(
     enabledCommands: [
       'aiTokenUsage.openQuickMenu',
       'aiTokenUsage.showDetails',
+      'aiTokenUsage.testAllConnections',
       'aiTokenUsage.openConsoleLog',
       'aiTokenUsage.openUsageAnalytics',
       'aiTokenUsage.showDebugLogs',
@@ -486,7 +488,7 @@ export function createLogStatusBarTooltip(
         : 'Mode: Logs';
 
   md.appendMarkdown(
-    `---\n\n[⚡ Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;&nbsp; [🖥️ Dashboard](command:aiTokenUsage.showDetails) &nbsp;&nbsp; [🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;&nbsp; [📈 Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;&nbsp; [⚙️ ${modeLabel}](command:aiTokenUsage.toggleLogTooltipMode) &nbsp;&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
+    `---\n\n[⚡ Quick Menu](command:aiTokenUsage.openQuickMenu) &nbsp;&nbsp; [🖥️ Dashboard](command:aiTokenUsage.showDetails) &nbsp;&nbsp; [▶️ Test All](command:aiTokenUsage.testAllConnections) &nbsp;&nbsp; [🖥️ Live Console Log](command:aiTokenUsage.openConsoleLog) &nbsp;&nbsp; [📈 Usage Analytics](command:aiTokenUsage.openUsageAnalytics) &nbsp;&nbsp; [⚙️ ${modeLabel}](command:aiTokenUsage.toggleLogTooltipMode) &nbsp;&nbsp; [🔄 Refresh](command:aiTokenUsage.refresh)\n`
   );
 
   return md;

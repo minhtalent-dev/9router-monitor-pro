@@ -46,7 +46,8 @@ import {
   toggleTooltipMode,
   setLogStatusDisplayMode,
   setLogTooltipMode,
-  toggleLogTooltipMode
+  toggleLogTooltipMode,
+  testAllConnectionsAction
 } from './ui/quickMenu';
 import { showDetails, syncDashboardWebview } from './ui/dashboardPanel';
 import {
@@ -124,6 +125,11 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand('aiTokenUsage.refresh', () =>
       refresh(context, true)
+    ),
+    vscode.commands.registerCommand('aiTokenUsage.testAllConnections', () =>
+      testAllConnectionsAction(context, getConfig(), (isManual?: boolean) =>
+        refresh(context, isManual)
+      )
     ),
     vscode.commands.registerCommand('aiTokenUsage.setConnection', () =>
       setConnection(context, () => refresh(context))

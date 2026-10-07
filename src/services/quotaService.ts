@@ -1,10 +1,13 @@
+import * as vscode from 'vscode';
 import {
   AuthContext,
   DashboardData,
   ExtensionConfig,
   ProviderConnection,
+  ProviderTestResult,
   ProviderUsage,
   QuotaData,
+  TestAllSummary,
   UsageData
 } from '../types';
 import {
@@ -213,3 +216,119 @@ export async function updateProviderActive(
   logInfo('Quota', `Provider ${connectionId} active status successfully updated to ${isActive}.`);
   return true;
 }
+
+export async function testProviderConnection(
+  cfg: ExtensionConfig,
+  auth: AuthContext,
+  connection: ProviderConnection
+): Promise<ProviderTestResult> {
+  const target = buildUrl(
+    cfg.baseUrl,
+    `/api/providers/${encodeURIComponent(connection.id)}/test`
+  );
+  const startTime = Date.now();
+  const connName = connection.name || connection.email || connection.id;
+
+  try {
+    const res = await requestWithAuth<{
+      valid?: boolean;
+      error?: string | null;
+      refreshed?: boolean;
+    }>(target, auth, {
+      method: 'POST'
+    });
+    const latencyMs = Date.now() - startTime;
+    const data = res.data;
+
+    if (res.status >= 200 && res.status < 300 && data) {
+      const isValid = Boolean(data.valid);
+      const errStr = data.error ?? (isValid ? null : `HTTP ${res.status}`);
+      return {
+        id: connection.id,
+        name: connName,
+        provider: connection.provider,
+        valid: isValid,
+        error: errStr,
+        refreshed: Boolean(data.refreshed),
+        latencyMs
+      };
+    }
+
+    return {
+      id: connection.id,
+      name: connName,
+      provider: connection.provider,
+      valid: false,
+      error: `HTTP ${res.status}`,
+      refreshed: false,
+      latencyMs
+    };
+  } catch (err) {
+    const latencyMs = Date.now() - startTime;
+    const msg = err instanceof Error ? err.message : String(err);
+    logWarn('Quota', `Test connection ${connName} failed: ${msg}`);
+    return {
+      id: connection.id,
+      name: connName,
+      provider: connection.provider,
+      valid: false,
+      error: msg,
+      refreshed: false,
+      latencyMs
+    };
+  }
+}
+
+export async function testAllProviderConnections(
+  cfg: ExtensionConfig,
+  auth: AuthContext,
+  connections: ProviderConnection[],
+  onProgress?: (
+    done: number,
+    total: number,
+    current: ProviderConnection,
+    result?: ProviderTestResult
+  ) => void,
+  cancellationToken?: vscode.CancellationToken
+): Promise<TestAllSummary> {
+  const total = connections.length;
+  let done = 0;
+  let cancelled = false;
+
+  const results: ProviderTestResult[] = [];
+  let index = 0;
+  const workerCount = Math.min(3, Math.max(1, connections.length));
+
+  const workers = Array.from({ length: workerCount }, async () => {
+    while (index < connections.length) {
+      if (cancellationToken?.isCancellationRequested) {
+        cancelled = true;
+        break;
+      }
+      const i = index++;
+      const conn = connections[i];
+      const res = await testProviderConnection(cfg, auth, conn);
+      results.push(res);
+      done++;
+      onProgress?.(done, total, conn, res);
+    }
+  });
+
+  await Promise.all(workers);
+
+  const passed = results.filter((r) => r.valid).length;
+  const failed = results.filter((r) => !r.valid).length;
+  const totalLatency = results.reduce((acc, r) => acc + r.latencyMs, 0);
+  const avgLatencyMs =
+    results.length > 0 ? Math.round(totalLatency / results.length) : 0;
+
+  return {
+    total,
+    passed,
+    failed,
+    cancelled,
+    avgLatencyMs,
+    results
+  };
+}
+

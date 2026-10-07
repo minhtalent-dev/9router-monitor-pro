@@ -89,6 +89,34 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
       }
     }
 
+    function updateAccountTestBadgeDOM(connId, result) {
+      const sec = document.querySelector('.provider-section[data-connection-id="' + connId + '"]');
+      if (!sec) return;
+      const testBtn = sec.querySelector('.test-account-btn');
+      if (testBtn) {
+        testBtn.classList.remove('testing');
+        testBtn.textContent = '▶️ Test';
+      }
+      const badgesContainer = sec.querySelector('.badges');
+      if (!badgesContainer) return;
+
+      let badge = badgesContainer.querySelector('.badge.test-status');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'badge test-status';
+        badgesContainer.appendChild(badge);
+      }
+      if (result.valid) {
+        badge.className = 'badge test-status test-valid';
+        badge.textContent = '🟢 ' + (result.latencyMs ? result.latencyMs + 'ms' : 'OK');
+        badge.title = 'Connection verified healthy (' + result.latencyMs + 'ms)';
+      } else {
+        badge.className = 'badge test-status test-error';
+        badge.textContent = '🔴 Failed';
+        badge.title = 'Error: ' + (result.error || 'Connection failed');
+      }
+    }
+
     function updateModelPinDOM(modelKey, isPinned) {
       if (!modelKey) return;
       const lower = modelKey.toLowerCase();
@@ -855,6 +883,19 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
           allAnalyticsLogs = message.logs;
           renderAnalyticsTable();
         }
+      } else if (message.command === 'testConnectionResult' && message.result) {
+        updateAccountTestBadgeDOM(message.result.id, message.result);
+      } else if (message.command === 'testAllFinished') {
+        const testAllBtn = document.getElementById('testAllConnectionsBtn');
+        if (testAllBtn) {
+          testAllBtn.classList.remove('testing');
+          testAllBtn.disabled = false;
+          testAllBtn.textContent = '▶️ Test All';
+        }
+        document.querySelectorAll('.test-account-btn').forEach(b => {
+          b.classList.remove('testing');
+          b.textContent = '▶️ Test';
+        });
       }
     });
 
@@ -897,6 +938,30 @@ export function getDashboardScript(initialTab: string, preferredFilter: string):
     }
 
     document.addEventListener('click', (e) => {
+      const testAllBtn = e.target.closest('#testAllConnectionsBtn');
+      if (testAllBtn) {
+        if (!testAllBtn.disabled && !testAllBtn.classList.contains('testing')) {
+          testAllBtn.classList.add('testing');
+          testAllBtn.disabled = true;
+          testAllBtn.textContent = '⏳ Testing All...';
+          document.querySelectorAll('.test-account-btn').forEach(b => {
+            b.classList.add('testing');
+            b.textContent = '⏳...';
+          });
+          vscode.postMessage({ command: 'testAllConnections' });
+        }
+        return;
+      }
+      const testBtn = e.target.closest('.test-account-btn');
+      if (testBtn) {
+        const connId = testBtn.dataset.connectionId;
+        if (connId && !testBtn.classList.contains('testing')) {
+          testBtn.classList.add('testing');
+          testBtn.textContent = '⏳...';
+          vscode.postMessage({ command: 'testSingleConnection', connectionId: connId });
+        }
+        return;
+      }
       const pinAccBtn = e.target.closest('.pinned-account-btn, .pin-account-btn');
       if (pinAccBtn) {
         const accountId = pinAccBtn.dataset.accountId;

@@ -118,3 +118,22 @@ export interface SharedCachePayload {
   lastError?: string;
   lastLogError?: string;
 }
+
+export interface ProviderTestResult {
+  id: string;
+  name: string;
+  provider: string;
+  valid: boolean;
+  error: string | null;
+  refreshed: boolean;
+  latencyMs: number;
+}
+
+export interface TestAllSummary {
+  total: number;
+  passed: number;
+  failed: number;
+  cancelled?: boolean;
+  avgLatencyMs: number;
+  results: ProviderTestResult[];
+}

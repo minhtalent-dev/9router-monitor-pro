@@ -12,6 +12,8 @@ import {
   fetchRequestLogs,
   fetchUsageStats,
   openConsoleLogStream,
+  testAllProviderConnections,
+  testProviderConnection,
   updateProviderActive
 } from '../services/apiClient';
 import {
@@ -241,6 +243,68 @@ export async function showDetails(
             `[9Router Pro] Failed to update account status: ${errMsg}`
           );
           syncDashboardWebview(context, cfg);
+        }
+      } else if (msg.command === 'testSingleConnection' && msg.connectionId) {
+        const auth = await getAuthContext(context, cfg);
+        if (!auth) {
+          vscode.window.showErrorMessage(
+            '[9Router Pro] No authentication credentials found to test connection.'
+          );
+          return;
+        }
+        const conn = getLastDashboard()?.items.find(
+          (it) => it.connection.id === msg.connectionId
+        )?.connection;
+        if (!conn) {
+          return;
+        }
+        const result = await testProviderConnection(cfg, auth, conn);
+        detailsPanel?.webview.postMessage({
+          command: 'testConnectionResult',
+          result
+        });
+        if (result.refreshed) {
+          void onRefresh(false);
+        }
+      } else if (msg.command === 'testAllConnections') {
+        const auth = await getAuthContext(context, cfg);
+        if (!auth) {
+          vscode.window.showErrorMessage(
+            '[9Router Pro] No authentication credentials found to test connections.'
+          );
+          detailsPanel?.webview.postMessage({
+            command: 'testAllFinished',
+            summary: { total: 0, passed: 0, failed: 0, results: [] }
+          });
+          return;
+        }
+        const connections = getLastDashboard()?.items.map((it) => it.connection) ?? [];
+        if (connections.length === 0) {
+          detailsPanel?.webview.postMessage({
+            command: 'testAllFinished',
+            summary: { total: 0, passed: 0, failed: 0, results: [] }
+          });
+          return;
+        }
+        const summary = await testAllProviderConnections(
+          cfg,
+          auth,
+          connections,
+          (done, total, current, result) => {
+            if (result) {
+              detailsPanel?.webview.postMessage({
+                command: 'testConnectionResult',
+                result
+              });
+            }
+          }
+        );
+        detailsPanel?.webview.postMessage({
+          command: 'testAllFinished',
+          summary
+        });
+        if (summary.results.some((r) => r.refreshed)) {
+          void onRefresh(false);
         }
       } else if (
         (msg.command === 'togglePinModel' || msg.command === 'pinModel') &&

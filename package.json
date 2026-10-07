@@ -52,6 +52,10 @@
         "title": "9Router Monitor Pro: Refresh"
       },
       {
+        "command": "aiTokenUsage.testAllConnections",
+        "title": "9Router Monitor Pro: Test All Connections"
+      },
+      {
         "command": "aiTokenUsage.setConnection",
         "title": "9Router Monitor Pro: Set Connection (URL & Password)"
       },
